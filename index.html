@@ -1,0 +1,446 @@
+<html>
+
+<head>
+  <link rel="stylesheet" href="./bower_components/bootstrap/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="./bower_components/font-awesome/css/font-awesome.min.css"/>
+  <link rel="stylesheet/less" href="./site/main.less"/>
+</head>
+
+<body>
+
+
+<div class="jumbotron">
+  <div class="jumbotron-inner">
+    <div class="overview">
+      <h1>CSS Polyfills</h1>
+      <p>Describe more using CSS</p>
+      <p>Use CSS to describe menial tasks in JavaScript like wrapping elements for styling, moving content around, numbering things, and more!</p>
+      <p><a href="#motivation" class="btn btn-primary btn-lg" role="button">Learn More</a> <a href="https://github.com/philschatz/css-polyfill" class="btn btn-success btn-lg" role="button"><i class="fa fa-github"></i> GitHub</a></p>
+    </div>
+    <div class="example">
+
+  <h3>What if you use CSS to write:</h3>
+
+<pre><code class="css">// Move content in the DOM
+.definition    { move-to: glossary-bucket; }
+.glossary-area {
+  content: pending(glossary-bucket);
+  // Or add custom extensions:
+  content: x-sort(pending(glossary-bucket),
+                  x-selector('.date'));
+}
+// Number links to other elements
+a.xref {
+  content: 'See ' target-counter(attr(href), chapter)
+             ': ' target-text(attr(href), content());
+}
+// Wrap Elements just for styling purposes
+.example:outside    { x-add-class: 'modal-content'; }
+.example:outside(2) { x-add-class: 'modal-dialog'; }</code></pre>
+
+    </div>
+  </div>
+</div>
+
+
+<hr/>
+
+
+
+
+<div id="motivation">
+  <div class="container">
+
+<h1>Motivation</h1>
+<p>CSS is constantly changing and there is a lack of tools for experimenting with new ways of using it.</p>
+<p>There are some great Working Drafts that describe extensions to CSS (<a href="http://www.w3.org/TR/css3-gcpm/">Generated Content for Paged Media</a> and <a href="http://www.w3.org/TR/css3-content/">CSS3 Generated and Replaced Content Module</a>), features often implemented using ad-hoc JavaScript.</p>
+<p>Below are some interactive examples showing how powerful CSS can be at describing these common operations.</p>
+
+
+<h2>Moving Content</h2>
+<p>Moving content in the DOM is simple using the <code class="css">move-to: bucket-name;</code> and <code class="css">content: pending(bucket-name);</code> rules defined in <a href="http://www.w3.org/TR/css3-content/#moving">CSS3 Generated and Replaced Content Module</a>.</p>
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">// You can move content in the DOM
+// See http://www.w3.org/TR/css3-content/#moving
+
+// This element will be moved into the glossary-bucket...
+.def-a { move-to: bucket-a; }
+.def-b { move-to: bucket-b; }
+
+// ... and dumped out into this area in the order added.
+.area-a { content: pending(bucket-a); }
+.area-b { content: pending(bucket-b); }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;div class="def-a">This will be in the 1st Area A&lt;/div>
+&lt;div class="def-b">This will be in Area B&lt;/div>
+&lt;div class="def-a">This will also be in the 1st Area A&lt;/div>
+
+&lt;h3>Area A&lt;/h3>
+&lt;div class="area-a">&lt;/div>
+&lt;h3>Area B&lt;/h3>
+&lt;div class="area-b">&lt;/div>
+
+&lt;div class="def-a">This will be in the 2nd Area A&lt;/div>
+&lt;h3>Area A&lt;/h3>
+&lt;div class="area-a">&lt;/div></div>
+
+
+</div><!-- /row -->
+
+
+
+
+
+
+<h2>Looking up Cross-referenced text and counters</h2>
+<p>Looking up text inside some other element is simple using the <code class="css">content: target-text(attr(href));</code> and <code class="css">content: target-counter(attr(href), chapter-coutner);</code> rules defined in <a href="http://www.w3.org/TR/css3-gcpm/#cross-references">CSS Generated Content for Paged Media Module</a>.</p>
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">// You can look up text in another element
+// See http://www.w3.org/TR/css3-gcpm/#cross-references
+
+// Just set a counter so we can look it up later
+h3 { counter-increment: chap; }
+h3:before { content: 'Ch ' counter(chap) ': '; }
+
+.xref { content: 'See ' target-text(attr(href), content()); }
+
+.xref-counter {
+  content: 'See Chapter ' target-counter(attr(href), chap);
+ }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;h3 id="ch1">The Appendicular Skeleton&lt;/h3>
+&lt;p>Here is a reference to another chapter:
+  &lt;a href="#ch2" class="xref">Link&lt;/a>
+&lt;/p>
+
+&lt;h3 id="ch2">The Brain and Cranial Nerves&lt;/h3>
+&lt;p>Here is a reference to another chapter:
+  &lt;a href="#ch1" class="xref">Link&lt;/a>
+&lt;/p>
+&lt;p>A reference using target-counter:
+  &lt;a href="#ch1" class="xref-counter">Link&lt;/a>
+&lt;/p></div>
+
+
+</div><!-- /row -->
+
+
+
+
+
+
+
+<h3>Adding Extensions</h3>
+
+<p>Continuing with the Move example, it may be nice to sort the elements being moved like in a glossary.</p>
+<p>Adding these extensions is pretty straightforward. Here is the definition of <code class="css">x-sort(bucket)</code>.</p>
+
+<pre>
+'x-sort': ($context, pendingElsNode) ->
+  $pendingEls = pendingElsNode.value
+  sorted = _.clone($pendingEls).sort (a, b) ->
+    a = a.text()
+    b = b.text()
+    return -1 if (a &lt; b)
+    return 1
+
+  $sorted = $('EMPTY_SET_OF_NODES')
+  _.each sorted, (el) ->
+    $sorted = $sorted.add(el)
+
+  return $sorted
+</pre>
+
+<p>You can use it in a demo below. Note that the items are sorted alphabetically.</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">// This element will be moved into the glossary-bucket...
+.def {
+  move-to: glossary-bucket;
+}
+
+// ... and dumped out into this area in the order added.
+.glossary-area {
+  content: x-sort(pending(glossary-bucket));
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;div class="def">
+  Second law: states...
+&lt;/div>
+&lt;div class="def">
+  Zeroth law: law in...
+&lt;/div>
+&lt;div class="def">
+  First law: law est...
+&lt;/div>
+
+&lt;h1>Glossary&lt;/h1>
+&lt;div class="glossary-area">&lt;/div></div>
+
+
+</div><!-- /row -->
+
+
+
+<h3>More Extensions</h3>
+
+<p>Sometimes it is useful to sort by something other than the text.</p>
+<p>With the polyfills you can add a second argument to sort that provides a selector to specify what to sort on.</p>
+<p>Try the demo below and notice the elements are sorted by the <code>sort-by</code> span instead of alphabetically.</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">// This element will be moved into the glossary-bucket...
+.def {
+  move-to: glossary-bucket;
+}
+
+// ... and dumped out into this area in the order added.
+.glossary-area {
+  content: x-sort(pending(glossary-bucket),
+                  x-selector('.sort-by'));
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;div class="def">
+  Second law: states...&lt;span class="sort-by">2&lt;/span>
+&lt;/div>
+&lt;div class="def">
+  Zeroth law: law in...&lt;span class="sort-by">0&lt;/span>
+&lt;/div>
+&lt;div class="def">
+  First law: law est...&lt;span class="sort-by">1&lt;/span>
+&lt;/div>
+
+&lt;h1>Glossary&lt;/h1>
+&lt;div class="glossary-area">&lt;/div></div>
+
+
+</div><!-- /row -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<h2 id="kitchen-sink">The Kitchen Sink</h2>
+
+
+
+<div class="try-it-example kitchen-sink">
+<div class="row">
+
+  <div class="col-md-6"><pre class="css-editor"><code class="css">// You can replace the content of any element (not just pseudo elements)
+
+.contents-simple { content: 'AFTER'; }
+.contents-attr { content: attr(data-after); }
+
+// The content of ::before/after elements will gracefully fallback
+h1::before {
+  content: 'Simple';
+  content: 'Unparseable because of' invalid-magic() ' function';
+  content: 'Chapter ' counter(chapter-counter) ': ';
+}
+
+// Move example
+.definition { move-to: glossary-bucket; }
+.chapter-glossary { content: x-sort(pending(glossary-bucket), '.sort-by'); }
+
+// Counter examples
+h1 {
+  counter-reset: term-counter 0;
+  counter-increment: chapter-counter 1;
+}
+.definition { counter-increment: term-counter 1; }
+.definition::before { content: '[t' counter(term-counter) ']'; }
+
+
+.target-chapter {
+  //content: 'See Chapter ' target-counter(attr(href), chapter-counter);
+  content: 'See Chapter ' target-counter(attr(href), chapter-counter) ':' target-text(attr(href), content());
+}
+
+
+//.footnote::before { content: counter(footnote-counter); }
+//.footnote::footnote-call { content: counter(footnote-counter); }
+//.footnote { move-to: footnote-bucket; }
+
+//.footnotes-area { content: pending(footnote-bucket); }
+</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+<div class="html-editor">
+&lt;div>&lt;span class="contents-simple">before&lt;/span> and using an attribute: &lt;span class="contents-attr" data-after="Aloha!">Hello!&lt;/span>&lt;/div>
+
+    &lt;h1 id="chapter-first">Kinetics&lt;/h1>
+
+&lt;p>Some chapter content goes here with a &lt;span class="footnote">Footnote text&lt;/span>&lt;/p>
+&lt;div class="definition">
+  &lt;b>term2&lt;/b> is defined as &lt;b>force&lt;/b> times distance over time &lt;span class="sort-by">3&lt;/span>
+&lt;/div>
+
+&lt;h2>Vectors and Scalars&lt;/h2>
+&lt;p>Some chapter content goes here&lt;/p>
+&lt;a href="#chapter-first" class="target-chapter">Link&lt;/a>
+&lt;div class="definition">
+  &lt;b>term3&lt;/b> is defined as mass times acceleration &lt;span class="sort-by">1&lt;/span>
+&lt;/div>
+
+&lt;div class="definition">
+  &lt;b>term1&lt;/b> is defined as &lt;b>force&lt;/b> times distance over time &lt;span class="sort-by">2&lt;/span>
+&lt;/div>
+
+&lt;p>Some chapter content goes here&lt;/p>
+
+&lt;h2>Glossary&lt;/h2>
+&lt;section class="chapter-glossary">&lt;/section>
+
+&lt;h2>Footnotes Area&lt;/h2>
+&lt;section class="footnotes-area">&lt;/section>
+
+&lt;hr/>
+
+&lt;h1 id="chapter-second">Work, Energy, and Energy Resources&lt;/h1>
+&lt;p>Some chapter content goes here&lt;/p>
+
+&lt;div class="definition">
+  &lt;b>work&lt;/b> is defined as &lt;b>force&lt;/b> times distance
+&lt;/div>
+
+&lt;h2>Glossary&lt;/h2>
+&lt;section class="chapter-glossary">&lt;/section>
+
+
+</div>
+
+</div><!-- /row -->
+
+</div><!-- /try-it-example -->
+
+
+</div><!-- /#examples.container -->
+</div><!-- /#examples -->
+
+
+<div id="try-it-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="tryItLabel" aria-hidden="true">
+  <div class="modal-dialog" style="width: auto;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+        <h4 class="modal-title" id="tryItLabel">Runnable Example</h4>
+      </div>
+      <div class="modal-body">
+
+        <p>This is a working example that can be edited. The CSS and original HTML are on the left side and a preview of the Original HTML is on the right. Click the <strong>Run It!</strong> button to apply the CSS to the HTML</p>
+        <table>
+          <tr>
+            <td class="column-edit-css">
+              <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">Edit the CSS:</h3>
+                </div>
+                <div class="panel-body">
+                  <div class="css-editor"></div>
+                </div>
+              </div>
+
+            </td>
+            <td rowspan="2" class="column-preview">
+              <div class="run-reload">
+                <button class="btn btn-success run"><i class="fa fa-play"></i> Run it!</button>
+                <button class="btn btn-primary reload"><i class="fa fa-undo"></i> Reset</button>
+              </div>
+              <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">Preview:
+                  </h3>
+                </div>
+                <div class="panel-body">
+                  <div class="preview"></div>
+                </div>
+              </div>
+
+            </td>
+          </tr>
+          <tr>
+            <td class="column-edit-html">
+              <div class="panel panel-default">
+                <div class="panel-heading">
+                  <h3 class="panel-title">Edit the HTML:</h3>
+                </div>
+                <div class="panel-body">
+                  <div class="html-editor"></div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </table>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+
+
+
+
+<script src="./site/hiless.js"></script>
+
+
+
+
+
+
+
+<script>
+  var require = {
+    //baseUrl: ,
+    paths: {
+        ace: 'bower_components/ace/lib/ace'
+    },
+    waitSeconds: 30
+  };
+</script>
+
+<script src="./less.js/test/browser/less.js"></script>
+<script src="./bower_components/coffee-script/extras/coffee-script.js"></script>
+
+<script src="./bower_components/requirejs/require.js"></script>
+<script src="./bower_components/jquery/jquery.min.js"></script>
+<script src="./bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<script src="./bower_components/underscore/underscore.js"></script>
+
+<script type="text/coffeescript" src="./css-polyfill.coffee"></script>
+
+<script type="text/coffeescript" src="./site/try-it.coffee"></script>
+
+
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "name": "css-polyfill",
+  "version": "0.0.0",
+  "authors": [
+    "Philip Schatz <phil@cnx.org>"
+  ],
+  "main": "css-polyfill.js",
+  "keywords": [
+    "css",
+    "polyfill",
+    "extensions"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jquery": "~2.0.3",
+    "underscore": "~1.5.2",
+    "ace": "~1.1.1",
+    "requirejs": "~2.1.9",
+    "bootstrap": "~3.0.2",
+    "font-awesome": "~4.0.3"
+  }
+}
