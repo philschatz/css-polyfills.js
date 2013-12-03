@@ -46,6 +46,9 @@ class LessVisitor
 
 class AbstractSelectorVisitor extends LessVisitor
 
+  # ClassRenamerPlugin uses this flag
+  ignorePseudoSelectors: false
+
   operateOnElements: (frame, $els) -> console.error('BUG! Need to implement this method')
 
   # Helper to add things to jQuery.data()
@@ -76,17 +79,24 @@ class AbstractSelectorVisitor extends LessVisitor
 
   visitElement: (node, visitArgs) ->
     frame = @peek()
-    if /:before$/.test(node.value)
-      frame.pseudoName = 'before'
-      cls = "js-polyfill-pseudo-before"
-      frame.selectorAry.push("> .#{cls}")
-    else if /:after$/.test(node.value)
-      frame.pseudoName = 'after'
-      cls = "js-polyfill-pseudo-after"
-      frame.selectorAry.push("> .#{cls}")
+    if @ignorePseudoSelectors
+      if not /^:/.test(node.value)
+        frame.selectorAry.push(node.combinator.value)
+        frame.selectorAry.push(node.value)
     else
-      frame.selectorAry.push(node.combinator.value)
-      frame.selectorAry.push(node.value)
+      if /:before$/.test(node.value)
+        frame.pseudoName = 'before'
+        cls = "js-polyfill-pseudo-before"
+        frame.selectorAry.push('>') # Combinator
+        frame.selectorAry.push(".#{cls}")
+      else if /:after$/.test(node.value)
+        frame.pseudoName = 'after'
+        cls = "js-polyfill-pseudo-after"
+        frame.selectorAry.push('>') # Combinator
+        frame.selectorAry.push(".#{cls}")
+      else
+        frame.selectorAry.push(node.combinator.value)
+        frame.selectorAry.push(node.value)
 
   visitRulesetOut: (node) ->
     frame = @pop()
@@ -102,20 +112,46 @@ class AbstractSelectorVisitor extends LessVisitor
 ClassRenamerPlugin =
   lessVisitor:
     class ClassRenamer extends AbstractSelectorVisitor
+      # Run preEval so we can change the selectors
+      isPreEvalVisitor: true
+      # Ignore pseudoselectors so we add the correct class to all elements
+      ignorePseudoSelectors: true
+
       constructor: () ->
         super(arguments...)
         @idCounter = 0
         @classMap = {}
 
-      visitRuleset: (node, visitArgs) ->
-        super(arguments...)
-        selector = "js-polyfill-autoclass-#{@idCounter}"
+      # Do this after visiting the selector so the AbstractSelectorVisitor has time to squirrel away the original selector
+      visitSelectorOut: (node, visitArgs) ->
+        frame = @peek()
+        # Rewrite the selector to use a class name
+        # but preserve pseudoselectors
+        newClass = "js-polyfill-autoclass-#{@idCounter}"
+        @idCounter += 1
+
         index = 0 # optional, but it seems to be the "specificity"; maybe it should be extracted from the original selector
-        node.selectors = [new less.tree.Selector(new less.tree.Element('', selector, index))]
+        newElements = [
+          new less.tree.Element('', ".#{newClass}", index)
+          new less.tree.Comment(node.toCSS({}), true, index)
+        ]
+        oldElements = []
+        _.each node.elements, (el) ->
+          if /^:/.test(el.value)
+            newElements.push(el)
+          else if newElements.length > 2
+            # Anything following a pseudoselector gets pushed on as well (like `:outside (2)`)
+            newElements.push(el)
+          else
+            oldElements.push(el)
+        node.elements = newElements
+
+        frame.selectors ?= {}
+        frame.selectors[newClass] = oldElements
 
       operateOnElements: (frame, $els) ->
-        $els.addClass("js-polyfill-autoclass-#{@idCounter}")
-        @idCounter += 1
+        for className, selector of frame.selectors
+          $els.addClass(className)
 
 
 # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
@@ -130,8 +166,6 @@ PseudoExpanderPlugin =
       isPreEvalVisitor: false
       isPreVisitor: true
       isReplacing: false
-
-      # constructor: (@$root) -> super(arguments...)
 
       visitRuleset: (node, visitArgs) ->
         # Begin here.
@@ -603,12 +637,12 @@ TargetTextPlugin =
       return new ValueNode(ret)
 
 
-window.CSSPolyfill = ($root, cssStyle) ->
+window.CSSPolyfill = ($root, cssStyle, cb=null) ->
 
   p1 = new less.Parser()
   p1.parse cssStyle, (err, val) ->
 
-    console.error(err) if err
+    return cb(err, value) if err
 
     # Use a global env so various passes can share data (grumble)
     env = {}
@@ -671,3 +705,6 @@ window.CSSPolyfill = ($root, cssStyle) ->
       SetContentPlugin
     ]
     doStuff(plugins)
+
+    # return the converted CSS
+    cb?(null, val.toCSS({}))
