@@ -56,14 +56,14 @@ class AbstractSelectorVisitor extends LessVisitor
       for c in exprs
         content.push(c)
       $els.data(dataKey, content)
-      $els.addClass('js-polyfill-debug-has-data')
-      $els.addClass("js-polyfill-debug-#{dataKey}")
+      $els.addClass('js-polyfill-has-data')
+      $els.addClass("js-polyfill-#{dataKey}")
 
   dataSet: ($els, dataKey, expr) ->
     if expr
       $els.data(dataKey, expr)
-      $els.addClass('js-polyfill-debug-has-data')
-      $els.addClass("js-polyfill-debug-#{dataKey}")
+      $els.addClass('js-polyfill-has-data')
+      $els.addClass("js-polyfill-#{dataKey}")
 
   visitRuleset: (node, visitArgs) ->
     # Begin here.
@@ -76,14 +76,8 @@ class AbstractSelectorVisitor extends LessVisitor
 
   visitElement: (node, visitArgs) ->
     frame = @peek()
-    if /:before$/.test(node.value)
-      frame.pseudoName = 'before'
-      cls = "js-polyfill-pseudo-before"
-      frame.selectorAry.push("> .#{cls}")
-    else if /:after$/.test(node.value)
-      frame.pseudoName = 'after'
-      cls = "js-polyfill-pseudo-after"
-      frame.selectorAry.push("> .#{cls}")
+    if /^:/.test(node.value)
+      frame.hadPseudoSelectors = true
     else
       frame.selectorAry.push(node.combinator.value)
       frame.selectorAry.push(node.value)
@@ -96,26 +90,47 @@ class AbstractSelectorVisitor extends LessVisitor
 
     selector = selectorAry.join(' ')
     $els = @$root.find(selector)
-    @operateOnElements(frame, $els)
+    @operateOnElements(frame, $els, node)
 
+
+freshClassIdCounter = 0
+freshClass = () -> return "js-polyfill-autoclass-#{freshClassIdCounter++}"
 
 ClassRenamerPlugin =
   lessVisitor:
     class ClassRenamer extends AbstractSelectorVisitor
-      constructor: () ->
-        super(arguments...)
-        @idCounter = 0
-        @classMap = {}
+      # Run preEval so we can change the selectors
+      isPreEvalVisitor: true
 
-      visitRuleset: (node, visitArgs) ->
-        super(arguments...)
-        selector = "js-polyfill-autoclass-#{@idCounter}"
+      # Do this after visiting the selector so the AbstractSelectorVisitor has time to squirrel away the original selector
+      visitSelectorOut: (node, visitArgs) ->
+        frame = @peek()
+        # Rewrite the selector to use a class name
+        # but preserve pseudoselectors
+        newClass = freshClass()
+
         index = 0 # optional, but it seems to be the "specificity"; maybe it should be extracted from the original selector
-        node.selectors = [new less.tree.Selector(new less.tree.Element('', selector, index))]
+        newElements = [
+          new less.tree.Element('', ".#{newClass}", index)
+          new less.tree.Comment(node.toCSS({}), true, index)
+        ]
+        oldElements = []
+        _.each node.elements, (el) ->
+          if /^:/.test(el.value)
+            newElements.push(el)
+          else if newElements.length > 2
+            # Anything following a pseudoselector gets pushed on as well (like `:outside (2)`)
+            newElements.push(el)
+          else
+            oldElements.push(el)
+        node.elements = newElements
+
+        frame.selectors ?= {}
+        frame.selectors[newClass] = oldElements
 
       operateOnElements: (frame, $els) ->
-        $els.addClass("js-polyfill-autoclass-#{@idCounter}")
-        @idCounter += 1
+        for className, selector of frame.selectors
+          $els.addClass(className)
 
 
 # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
@@ -126,57 +141,70 @@ PSEUDO_ELEMENT_NAME = 'polyfillpseudo'
 
 PseudoExpanderPlugin =
   lessVisitor:
-    class PseudoSelectorExpander extends LessVisitor
-      isPreEvalVisitor: false
-      isPreVisitor: true
+    class PseudoSelectorExpander extends AbstractSelectorVisitor
+      # Modifies the AST so it should run pre-eval
+      isPreEvalVisitor: true
+      isPreVisitor: false
       isReplacing: false
 
-      # constructor: (@$root) -> super(arguments...)
-
-      visitRuleset: (node, visitArgs) ->
-        # Begin here.
-        @push {
-          selectorAry: []
-          pseudoName: null
-        }
-        # Build up a selector
-        # Note if it ends in ::before or ::after
-
       visitElement: (node, visitArgs) ->
+        super(arguments...)
         frame = @peek()
-        if /:before$/.test(node.value)
-          frame.pseudoName = 'before'
-        else if /:after$/.test(node.value)
-          frame.pseudoName = 'after'
-        # Footnote options. See http://www.w3.org/TR/css3-gcpm/#footnotes
-        else if /::footnote-call$/.test(node.value)
-          frame.pseudoName = 'footnote-call'
-        else if /::footnote-marker$/.test(node.value)
-          frame.pseudoName = 'footnote-marker'
-        else
-          frame.selectorAry.push(node.combinator.value)
-          frame.selectorAry.push(node.value)
+        isPseudo = /^:/.test(node.value)
+        if isPseudo or frame.pseudoSelectors # `:outside` may contain an additional `(0)` Element
+          frame.pseudoSelectors ?= []
+          frame.pseudoSelectors.push(node)
 
-      visitRulesetOut: (node) ->
-        frame = @pop()
-        # Select the nodes to add the pseudo-element
-        pseudoName = frame.pseudoName
-        selectorAry = frame.selectorAry
+      operateOnElements: (frame, $els, node) ->
+        $context = $els
+        for pseudoNode in frame.pseudoSelectors or []
+          switch pseudoNode.value
+            when ':before'
+              op          = 'prepend'
+              pseudoName  = 'before'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not($context.has(" > .#{cls}"))
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.children(".#{cls}")
 
-        if pseudoName
-          selector = selectorAry.join(' ')
-          $els = @$root.find(selector)
+            when ':after'
+              op          = 'append'
+              pseudoName  = 'after'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not($context.has(" > .#{cls}"))
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.children(".#{cls}")
 
-          op = switch pseudoName
-            when 'before' then 'prepend'
-            when 'after' then 'append'
-            else console.error('BUG! unmatched pseudo-selector')
+            when ':outside'
+              op          = 'wrap'
+              pseudoName  = 'outside'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not $context.filter (node) ->
+                              $parent = $(node).parent()
+                              return $parent.hasClass(cls)
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.parent()
 
-          # Prepend/Append if the DOM node does not yet exist
-          cls = "js-polyfill-pseudo-#{pseudoName}"
-          $els = $els.not($els.has(" > .#{cls}"))
-          $els[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+            else break # Skip to the next pseudoNode so we do not create freshClass's
 
+
+          newClass = freshClass()
+          $context.addClass(newClass)
+
+          # Update the selectors in the AST to use the newClass
+          _.each node.selectors, (selector) ->
+            # TODO: If the elements containa a comment then preserve it (shows the original Selector for debugging)
+            index = 0
+            selector.elements = [new less.tree.Element('', ".#{newClass}", index)]
 
 
 RemoveDisplayNonePlugin =
@@ -297,7 +325,8 @@ SetContentPlugin =
             frame.setContent.push(node.value)
 
       operateOnElements: (frame, $els) ->
-        @dataAppendAll($els, 'polyfill-content', frame.setContent)
+        if not frame.hadPseudoSelectors
+          @dataAppendAll($els, 'polyfill-content', frame.setContent)
 
   domVisitor:
     class SetContentDomVisitor extends DomVisitor
@@ -305,6 +334,12 @@ SetContentPlugin =
       domVisit: ($node) ->
         # content can be a string OR a set of nodes (`move-to`)
         contents = @evalWithContext('polyfill-content', $node)
+
+        # delete the `polyfill-content` data.
+        # This runs after the MoveToPlugin and before the PseudoExpanderPlugin
+        # so polyfill-content gets set on non-pseudo elements.
+        # But then later on once the CounterPlugin runs this plugin runs again
+        $node.removeData('polyfill-content')
 
         # The `content:` rule is a bit annoying.
         #
@@ -342,41 +377,53 @@ SetContentPlugin =
                 strings.push(val.value)
 
             if isValid
+              # Do not replace pseudo elements
+              $pseudoEls = $node.children('.js-polyfill-pseudo')
+              $pseudoBefore = $pseudoEls.not(':not(.js-polyfill-pseudo-before)')
+              $pseudoRest = $pseudoEls.not($pseudoBefore)
+
               $node.empty()
+              # Fill in the before pseudo elements
+              $node.append($pseudoBefore)
+
               # Append 1-by-1 because they values may be multiple jQuery sets (like `content: pending(bucket1) pending(bucket2)`)
               for val in strings
                 $node.append(val)
+
+              # Fill in the rest of the pseudo elements
+              $node.append($pseudoRest)
 
 
 
 
 # Iterate over the DOM and calculate the counter state for each interesting node, adding in pseudo-nodes
-parseCounters = (tokens, defaultNum) ->
+parseCounters = (val, defaultNum) ->
 
-  # tokens can be a less.tree.Expression([a, b, 12]) or just a less.tree.Keyword(a)
-  # make sure we are always dealing with an array
-  if tokens instanceof less.tree.Expression
-    tokens = tokens.value
-  else
-    tokens = [tokens]
+  # If the counter list contains a `-` then Less parses "name -1 othername 3" as Keyword, Dimension, Keyword, Dimension.
+  # Otherwise, Less parses "name 0 othername 3" as Anonymous["name 0 othername 3"].
+  # So, just convert it to a CSS string and have parseCounters split it up.
+  cssStr = val.toCSS({})
 
+  tokens = cssStr.split(' ')
   counters = {}
 
-  # counter-reset can have the following structure: "counter1 counter2 10 counter3 100 counter4 counter5"
-  # In this case it's parsed as a tree.Anonymous
+  # The counters to increment/reset can be 'none' in which case nothing is returned
+  return counters if 'none' == tokens[0]
+
+  # counter-reset can have the following structure: "counter1 counter2 -10 counter3 100 counter4 counter5"
 
   i = 0
   while i < tokens.length
-    name = tokens[i].value
+    name = tokens[i]
     if i == tokens.length - 1
       val = defaultNum
-    else if tokens[i+1] instanceof less.tree.Keyword
+    else if isNaN(parseInt(tokens[i+1])) # tokens[i+1] instanceof less.tree.Keyword
       val = defaultNum
-    else if tokens[i+1] instanceof less.tree.Dimension
-      val = tokens[i+1].value
+    else # if tokens[i+1] instanceof less.tree.Dimension
+      val = parseInt(tokens[i+1])
       i++
-    else
-      console.error('BUG! Unsupported Counter Token', tokens[i+1])
+    # else
+    #  console.error('BUG! Unsupported Counter Token', tokens[i+1])
     counters[name] = val
     i++
 
@@ -468,86 +515,82 @@ CounterPlugin =
         @dataAppendAll($els, 'polyfill-counter-reset', frame.setCounterReset)
         @dataAppendAll($els, 'polyfill-counter-increment', frame.setCounterIncrement)
 
+        # For each element set a class marking which counters were changed in this node.
+        # This is useful for implementing `target-counter` since it will traverse
+        # backwards to the nearest node where the counter changes.
+        counters = {}
+        if frame.setCounterReset
+          # TODO: instead of using last, err on the side of caution and just use all counters
+          val = _.last(frame.setCounterReset).eval()
+          _.defaults(counters, parseCounters(val, true))
+        if frame.setCounterIncrement
+          val = _.last(frame.setCounterIncrement).eval()
+          _.defaults(counters, parseCounters(val, true))
+
+        for counterName of counters
+          $els.addClass("js-polyfill-counter-change")
+          $els.addClass("js-polyfill-counter-change-#{counterName}")
+
+
+
   domVisitor:
     class CounterDomVisitor extends DomVisitor
 
       domVisit: ($node) ->
         @_env.counters ?= {} # make sure it is defined
+        countersChanged = false
 
         exprs = @evalWithContext('polyfill-counter-reset', $node)
         if exprs
-          expr = exprs[exprs.length-1].eval(@_env)
-          counters = parseCounters(expr, 0)
+          countersChanged = true
+          val = exprs[exprs.length-1].eval(@_env)
+          counters = parseCounters(val, 0)
           _.extend(@_env.counters, counters)
 
         exprs = @evalWithContext('polyfill-counter-increment', $node)
         if exprs
-          expr = exprs[exprs.length-1].eval(@_env)
-          counters = parseCounters(expr, 1)
+          countersChanged = true
+          val = exprs[exprs.length-1].eval(@_env)
+          counters = parseCounters(val, 1)
           for key, value of counters
             @_env.counters[key] ?= 0
             @_env.counters[key] += value
 
         # Squirrel away the counters if this node is "interesting" (for target-counter)
-        if $node.data('polyfill-counter-interesting')
+        if countersChanged
           $node.data('polyfill-counter-state', _.clone(@_env.counters))
-          $node.addClass('js-polyfill-debug-has-data')
-          $node.addClass("js-polyfill-debug-polyfill-counter-state")
+          $node.addClass('js-polyfill-has-data')
+          $node.addClass("js-polyfill-polyfill-counter-state")
 
 
-# The whole goal of this pass is to find which targets are interesting.
-# A second pass will yield the actual target-counter
-TargetCounterPlugin1 =
 
+
+# TODO: Make this a recursive traversal (for Large Documents)
+findBefore = (el, root, iterator) ->
+  $root = $(root)
+  all = _.toArray($root.add($root.find('*')))
+
+  # Find the index of `el`
+  index = -1
+  for i in [0..all.length]
+    if all[i] == el
+      index = i
+      break
+
+  # iterate until `iterator` returns `true` or we run out of elements
+  ret = false
+  while not ret and index > -1
+    ret = iterator(all[index])
+    index--
+  return ret
+
+TargetCounterPlugin =
   definedFunctions:
     # TODO: this func can be moved out of this plugin
     'attr': (attrName) ->
       return new ValueNode(@env.$context.attr(attrName.value))
 
-    # The first time all this does is return the element target id
-    'target-counter': (id, counterName, counterStyle=null) ->
-      return id
-
-  lessVisitor:
-    class TargetCounterLessVisitor extends AbstractSelectorVisitor
-
-      visitCall: (node, visitArgs) ->
-        frame = @peek()
-        if 'target-counter' == node.name
-          frame.callsTargetCounter = node
-
-      # visitRule: (node, visitArgs) ->
-      #   frame = @peek()
-      #   frame.callsTargetCounter = false
-
-      operateOnElements: (frame, $els) ->
-        @dataSet($els, 'polyfill-target-counter', frame.callsTargetCounter)
-
-  domVisitor:
-    class TargetCounterDomVisitor extends DomVisitor
-
-      domVisit: ($node) ->
-        expr = @evalWithContext('polyfill-target-counter', $node)
-        if expr
-          id = expr.eval(@_env).value
-          console.error('BUG: target-id MUST start with #') if id[0] != '#'
-          # TODO: This should use $root instead of global jQuery
-          $target = $("#{id}")
-          $target.data('polyfill-counter-interesting', true)
-          $target.addClass('js-polyfill-debug-has-data')
-          $target.addClass("js-polyfill-debug-polyfill-counter-interesting")
-
-
-
-
-TargetCounterPlugin2 =
-
-  definedFunctions:
-    # TODO: this func can be moved out of this plugin
-    'attr': (attrName) ->
-      return new ValueNode(@env.$context.attr(attrName.value))
-
-    # The first time all this does is return the element target id
+    # Traverse the DOM until the nearest node where the counter changes is found
     'target-counter': (id, counterName, counterStyle=null) ->
       counterName = counterName.value
       counterStyle = counterStyle?.value or 'decimal'
@@ -556,15 +599,24 @@ TargetCounterPlugin2 =
       console.error('BUG: target-id MUST start with #') if id[0] != '#'
       $target = $(id)
       if $target.length
-        counters = $target.data('polyfill-counter-state')
-        console.error('BUG: SHould have found a counter for this element') if not counters
-        val = counters[counterName] or 0
+        val = 0
+        findBefore $target[0], $('body')[0], (node) ->
+          $node = $(node)
+          if $node.is(".js-polyfill-counter-change-#{counterName}")
+            counters = $node.data('polyfill-counter-state')
+            console.error('BUG: SHould have found a counter for this element') if not counters
+            val = counters[counterName]
+            return true
+          # Otherwise, continue searching
+          return false
+
         return new ValueNode(numberingStyle(val, counterStyle))
 
       else
         # TODO: decide whether to fail silently by returning '' or return 'ERROR_TARGET_ID_NOT_FOUND'
         console.warn('ERROR: target-counter id not found having id:', id)
         return new ValueNode('ERROR_TARGET_ID_NOT_FOUND')
+
 
 
 TargetTextPlugin =
@@ -597,12 +649,12 @@ TargetTextPlugin =
       return new ValueNode(ret)
 
 
-window.CSSPolyfill = ($root, cssStyle) ->
+window.CSSPolyfill = ($root, cssStyle, cb=null) ->
 
   p1 = new less.Parser()
   p1.parse cssStyle, (err, val) ->
 
-    console.error(err) if err
+    return cb(err, value) if err
 
     # Use a global env so various passes can share data (grumble)
     env = {}
@@ -640,8 +692,24 @@ window.CSSPolyfill = ($root, cssStyle) ->
 
     # Run the plugins in multiple phases because move-to manipulates the DOM
     # and jQuery.data() disappears when the element detaches from the DOM
+
+
+    # Phases:
+    #
+    # 1. [-] Apply all non-interesting styles (like `display:none;`) to elements (no pseudo-selectors, no `content:`)
+    #        - convert selectors with pseudoselectors to .auto###:pseudo
+    # 2. [x] Move content
+    # 3. [x] Expand pseudoselectors to be real elements (`:before`, `:after`, `:outside`, `:outside(#)`)
+    # 4. [x] Calculate/Squirrel counter state on elements that have `counter-reset:` or `counter-increment:` rules)
+    # 5. [x] Populate `content:` for all things **except** `target-counter` or `target-text`
+    # 6. [x] Populate `content:` for things containing `target-counter` or `target-text`
+
     plugins = [
       ClassRenamerPlugin # Must be run **before** the MoveTo plugin so the styles continue to apply to the element when it is moved
+    ]
+    doStuff(plugins)
+
+    plugins = [
       MoveToPlugin # Run in the 1st phase because jQuery.data() is lost when DOM nodes move
       SetContentPlugin # Always run last
     ]
@@ -650,14 +718,21 @@ window.CSSPolyfill = ($root, cssStyle) ->
     plugins = [
       PseudoExpanderPlugin
       RemoveDisplayNonePlugin # Important to run **before** the CounterPlugin
-      TargetCounterPlugin1
     ]
     doStuff(plugins)
 
     plugins = [
-      CounterPlugin
-      TargetCounterPlugin2
+      CounterPlugin # Run the counter plugin **before** TargetCounterPlugin so links to elements later in the DOM work
+      SetContentPlugin # Used to populate content that just uses counter() for things like pseudoselectors
+    ]
+    doStuff(plugins)
+
+    plugins = [
+      TargetCounterPlugin
       TargetTextPlugin
       SetContentPlugin
     ]
     doStuff(plugins)
+
+    # return the converted CSS
+    cb?(null, val.toCSS({}))

@@ -1,0 +1,28 @@
+{
+  "name": "css-polyfill",
+  "version": "0.0.0",
+  "scripts": {
+    "blanket": {
+      "pattern": [
+        "css-polyfill.js"
+      ]
+    }
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "grunt-blanket-mocha": "git://github.com/philschatz/grunt-blanket-mocha.git#fixes-for-octokit.js",
+    "chai": "~1.8.1",
+    "mocha": "~1.14.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/philschatz/css-polyfill.git"
+  },
+  "keywords": [
+    "javascript",
+    "css",
+    "polyfill"
+  ],
+  "author": "Philip Schatz"
+}
