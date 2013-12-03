@@ -56,14 +56,14 @@ class AbstractSelectorVisitor extends LessVisitor
       for c in exprs
         content.push(c)
       $els.data(dataKey, content)
-      $els.addClass('js-polyfill-debug-has-data')
-      $els.addClass("js-polyfill-debug-#{dataKey}")
+      $els.addClass('js-polyfill-has-data')
+      $els.addClass("js-polyfill-#{dataKey}")
 
   dataSet: ($els, dataKey, expr) ->
     if expr
       $els.data(dataKey, expr)
-      $els.addClass('js-polyfill-debug-has-data')
-      $els.addClass("js-polyfill-debug-#{dataKey}")
+      $els.addClass('js-polyfill-has-data')
+      $els.addClass("js-polyfill-#{dataKey}")
 
   visitRuleset: (node, visitArgs) ->
     # Begin here.
@@ -351,32 +351,33 @@ SetContentPlugin =
 
 
 # Iterate over the DOM and calculate the counter state for each interesting node, adding in pseudo-nodes
-parseCounters = (tokens, defaultNum) ->
+parseCounters = (val, defaultNum) ->
 
-  # tokens can be a less.tree.Expression([a, b, 12]) or just a less.tree.Keyword(a)
-  # make sure we are always dealing with an array
-  if tokens instanceof less.tree.Expression
-    tokens = tokens.value
-  else
-    tokens = [tokens]
+  # If the counter list contains a `-` then Less parses "name -1 othername 3" as Keyword, Dimension, Keyword, Dimension.
+  # Otherwise, Less parses "name 0 othername 3" as Anonymous["name 0 othername 3"].
+  # So, just convert it to a CSS string and have parseCounters split it up.
+  cssStr = val.toCSS({})
 
+  tokens = cssStr.split(' ')
   counters = {}
 
-  # counter-reset can have the following structure: "counter1 counter2 10 counter3 100 counter4 counter5"
-  # In this case it's parsed as a tree.Anonymous
+  # The counters to increment/reset can be 'none' in which case nothing is returned
+  return counters if 'none' == tokens[0]
+
+  # counter-reset can have the following structure: "counter1 counter2 -10 counter3 100 counter4 counter5"
 
   i = 0
   while i < tokens.length
-    name = tokens[i].value
+    name = tokens[i]
     if i == tokens.length - 1
       val = defaultNum
-    else if tokens[i+1] instanceof less.tree.Keyword
+    else if isNaN(parseInt(tokens[i+1])) # tokens[i+1] instanceof less.tree.Keyword
       val = defaultNum
-    else if tokens[i+1] instanceof less.tree.Dimension
-      val = tokens[i+1].value
+    else # if tokens[i+1] instanceof less.tree.Dimension
+      val = parseInt(tokens[i+1])
       i++
-    else
-      console.error('BUG! Unsupported Counter Token', tokens[i+1])
+    # else
+    #  console.error('BUG! Unsupported Counter Token', tokens[i+1])
     counters[name] = val
     i++
 
@@ -468,86 +469,82 @@ CounterPlugin =
         @dataAppendAll($els, 'polyfill-counter-reset', frame.setCounterReset)
         @dataAppendAll($els, 'polyfill-counter-increment', frame.setCounterIncrement)
 
+        # For each element set a class marking which counters were changed in this node.
+        # This is useful for implementing `target-counter` since it will traverse
+        # backwards to the nearest node where the counter changes.
+        counters = {}
+        if frame.setCounterReset
+          # TODO: instead of using last, err on the side of caution and just use all counters
+          val = _.last(frame.setCounterReset).eval()
+          _.defaults(counters, parseCounters(val, true))
+        if frame.setCounterIncrement
+          val = _.last(frame.setCounterIncrement).eval()
+          _.defaults(counters, parseCounters(val, true))
+
+        for counterName of counters
+          $els.addClass("js-polyfill-counter-change")
+          $els.addClass("js-polyfill-counter-change-#{counterName}")
+
+
+
   domVisitor:
     class CounterDomVisitor extends DomVisitor
 
       domVisit: ($node) ->
         @_env.counters ?= {} # make sure it is defined
+        countersChanged = false
 
         exprs = @evalWithContext('polyfill-counter-reset', $node)
         if exprs
-          expr = exprs[exprs.length-1].eval(@_env)
-          counters = parseCounters(expr, 0)
+          countersChanged = true
+          val = exprs[exprs.length-1].eval(@_env)
+          counters = parseCounters(val, 0)
           _.extend(@_env.counters, counters)
 
         exprs = @evalWithContext('polyfill-counter-increment', $node)
         if exprs
-          expr = exprs[exprs.length-1].eval(@_env)
-          counters = parseCounters(expr, 1)
+          countersChanged = true
+          val = exprs[exprs.length-1].eval(@_env)
+          counters = parseCounters(val, 1)
           for key, value of counters
             @_env.counters[key] ?= 0
             @_env.counters[key] += value
 
         # Squirrel away the counters if this node is "interesting" (for target-counter)
-        if $node.data('polyfill-counter-interesting')
+        if countersChanged
           $node.data('polyfill-counter-state', _.clone(@_env.counters))
-          $node.addClass('js-polyfill-debug-has-data')
-          $node.addClass("js-polyfill-debug-polyfill-counter-state")
+          $node.addClass('js-polyfill-has-data')
+          $node.addClass("js-polyfill-polyfill-counter-state")
 
 
-# The whole goal of this pass is to find which targets are interesting.
-# A second pass will yield the actual target-counter
-TargetCounterPlugin1 =
 
+
+# TODO: Make this a recursive traversal (for Large Documents)
+findBefore = (el, root, iterator) ->
+  $root = $(root)
+  all = _.toArray($root.add($root.find('*')))
+
+  # Find the index of `el`
+  index = -1
+  for i in [0..all.length]
+    if all[i] == el
+      index = i
+      break
+
+  # iterate until `iterator` returns `true` or we run out of elements
+  ret = false
+  while not ret and index > -1
+    ret = iterator(all[index])
+    index--
+  return ret
+
+TargetCounterPlugin =
   definedFunctions:
     # TODO: this func can be moved out of this plugin
     'attr': (attrName) ->
       return new ValueNode(@env.$context.attr(attrName.value))
 
-    # The first time all this does is return the element target id
-    'target-counter': (id, counterName, counterStyle=null) ->
-      return id
-
-  lessVisitor:
-    class TargetCounterLessVisitor extends AbstractSelectorVisitor
-
-      visitCall: (node, visitArgs) ->
-        frame = @peek()
-        if 'target-counter' == node.name
-          frame.callsTargetCounter = node
-
-      # visitRule: (node, visitArgs) ->
-      #   frame = @peek()
-      #   frame.callsTargetCounter = false
-
-      operateOnElements: (frame, $els) ->
-        @dataSet($els, 'polyfill-target-counter', frame.callsTargetCounter)
-
-  domVisitor:
-    class TargetCounterDomVisitor extends DomVisitor
-
-      domVisit: ($node) ->
-        expr = @evalWithContext('polyfill-target-counter', $node)
-        if expr
-          id = expr.eval(@_env).value
-          console.error('BUG: target-id MUST start with #') if id[0] != '#'
-          # TODO: This should use $root instead of global jQuery
-          $target = $("#{id}")
-          $target.data('polyfill-counter-interesting', true)
-          $target.addClass('js-polyfill-debug-has-data')
-          $target.addClass("js-polyfill-debug-polyfill-counter-interesting")
-
-
-
-
-TargetCounterPlugin2 =
-
-  definedFunctions:
-    # TODO: this func can be moved out of this plugin
-    'attr': (attrName) ->
-      return new ValueNode(@env.$context.attr(attrName.value))
-
-    # The first time all this does is return the element target id
+    # Traverse the DOM until the nearest node where the counter changes is found
     'target-counter': (id, counterName, counterStyle=null) ->
       counterName = counterName.value
       counterStyle = counterStyle?.value or 'decimal'
@@ -556,15 +553,24 @@ TargetCounterPlugin2 =
       console.error('BUG: target-id MUST start with #') if id[0] != '#'
       $target = $(id)
       if $target.length
-        counters = $target.data('polyfill-counter-state')
-        console.error('BUG: SHould have found a counter for this element') if not counters
-        val = counters[counterName] or 0
+        val = 0
+        findBefore $target[0], $('body')[0], (node) ->
+          $node = $(node)
+          if $node.is(".js-polyfill-counter-change-#{counterName}")
+            counters = $node.data('polyfill-counter-state')
+            console.error('BUG: SHould have found a counter for this element') if not counters
+            val = counters[counterName]
+            return true
+          # Otherwise, continue searching
+          return false
+
         return new ValueNode(numberingStyle(val, counterStyle))
 
       else
         # TODO: decide whether to fail silently by returning '' or return 'ERROR_TARGET_ID_NOT_FOUND'
         console.warn('ERROR: target-counter id not found having id:', id)
         return new ValueNode('ERROR_TARGET_ID_NOT_FOUND')
+
 
 
 TargetTextPlugin =
@@ -650,13 +656,17 @@ window.CSSPolyfill = ($root, cssStyle) ->
     plugins = [
       PseudoExpanderPlugin
       RemoveDisplayNonePlugin # Important to run **before** the CounterPlugin
-      TargetCounterPlugin1
     ]
     doStuff(plugins)
 
     plugins = [
-      CounterPlugin
-      TargetCounterPlugin2
+      CounterPlugin # Run the counter plugin **before** TargetCounterPlugin so links to elements later in the DOM work
+      SetContentPlugin # Used to populate content that just uses counter() for things like pseudoselectors
+    ]
+    doStuff(plugins)
+
+    plugins = [
+      TargetCounterPlugin
       TargetTextPlugin
       SetContentPlugin
     ]
