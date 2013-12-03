@@ -46,9 +46,6 @@ class LessVisitor
 
 class AbstractSelectorVisitor extends LessVisitor
 
-  # ClassRenamerPlugin uses this flag
-  ignorePseudoSelectors: false
-
   operateOnElements: (frame, $els) -> console.error('BUG! Need to implement this method')
 
   # Helper to add things to jQuery.data()
@@ -79,24 +76,11 @@ class AbstractSelectorVisitor extends LessVisitor
 
   visitElement: (node, visitArgs) ->
     frame = @peek()
-    if @ignorePseudoSelectors
-      if not /^:/.test(node.value)
-        frame.selectorAry.push(node.combinator.value)
-        frame.selectorAry.push(node.value)
+    if /^:/.test(node.value)
+      frame.hadPseudoSelectors = true
     else
-      if /:before$/.test(node.value)
-        frame.pseudoName = 'before'
-        cls = "js-polyfill-pseudo-before"
-        frame.selectorAry.push('>') # Combinator
-        frame.selectorAry.push(".#{cls}")
-      else if /:after$/.test(node.value)
-        frame.pseudoName = 'after'
-        cls = "js-polyfill-pseudo-after"
-        frame.selectorAry.push('>') # Combinator
-        frame.selectorAry.push(".#{cls}")
-      else
-        frame.selectorAry.push(node.combinator.value)
-        frame.selectorAry.push(node.value)
+      frame.selectorAry.push(node.combinator.value)
+      frame.selectorAry.push(node.value)
 
   visitRulesetOut: (node) ->
     frame = @pop()
@@ -106,29 +90,24 @@ class AbstractSelectorVisitor extends LessVisitor
 
     selector = selectorAry.join(' ')
     $els = @$root.find(selector)
-    @operateOnElements(frame, $els)
+    @operateOnElements(frame, $els, node)
 
+
+freshClassIdCounter = 0
+freshClass = () -> return "js-polyfill-autoclass-#{freshClassIdCounter++}"
 
 ClassRenamerPlugin =
   lessVisitor:
     class ClassRenamer extends AbstractSelectorVisitor
       # Run preEval so we can change the selectors
       isPreEvalVisitor: true
-      # Ignore pseudoselectors so we add the correct class to all elements
-      ignorePseudoSelectors: true
-
-      constructor: () ->
-        super(arguments...)
-        @idCounter = 0
-        @classMap = {}
 
       # Do this after visiting the selector so the AbstractSelectorVisitor has time to squirrel away the original selector
       visitSelectorOut: (node, visitArgs) ->
         frame = @peek()
         # Rewrite the selector to use a class name
         # but preserve pseudoselectors
-        newClass = "js-polyfill-autoclass-#{@idCounter}"
-        @idCounter += 1
+        newClass = freshClass()
 
         index = 0 # optional, but it seems to be the "specificity"; maybe it should be extracted from the original selector
         newElements = [
@@ -162,55 +141,70 @@ PSEUDO_ELEMENT_NAME = 'polyfillpseudo'
 
 PseudoExpanderPlugin =
   lessVisitor:
-    class PseudoSelectorExpander extends LessVisitor
-      isPreEvalVisitor: false
-      isPreVisitor: true
+    class PseudoSelectorExpander extends AbstractSelectorVisitor
+      # Modifies the AST so it should run pre-eval
+      isPreEvalVisitor: true
+      isPreVisitor: false
       isReplacing: false
 
-      visitRuleset: (node, visitArgs) ->
-        # Begin here.
-        @push {
-          selectorAry: []
-          pseudoName: null
-        }
-        # Build up a selector
-        # Note if it ends in ::before or ::after
-
       visitElement: (node, visitArgs) ->
+        super(arguments...)
         frame = @peek()
-        if /:before$/.test(node.value)
-          frame.pseudoName = 'before'
-        else if /:after$/.test(node.value)
-          frame.pseudoName = 'after'
-        # Footnote options. See http://www.w3.org/TR/css3-gcpm/#footnotes
-        else if /::footnote-call$/.test(node.value)
-          frame.pseudoName = 'footnote-call'
-        else if /::footnote-marker$/.test(node.value)
-          frame.pseudoName = 'footnote-marker'
-        else
-          frame.selectorAry.push(node.combinator.value)
-          frame.selectorAry.push(node.value)
+        isPseudo = /^:/.test(node.value)
+        if isPseudo or frame.pseudoSelectors # `:outside` may contain an additional `(0)` Element
+          frame.pseudoSelectors ?= []
+          frame.pseudoSelectors.push(node)
 
-      visitRulesetOut: (node) ->
-        frame = @pop()
-        # Select the nodes to add the pseudo-element
-        pseudoName = frame.pseudoName
-        selectorAry = frame.selectorAry
+      operateOnElements: (frame, $els, node) ->
+        $context = $els
+        for pseudoNode in frame.pseudoSelectors or []
+          switch pseudoNode.value
+            when ':before'
+              op          = 'prepend'
+              pseudoName  = 'before'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not($context.has(" > .#{cls}"))
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.children(".#{cls}")
 
-        if pseudoName
-          selector = selectorAry.join(' ')
-          $els = @$root.find(selector)
+            when ':after'
+              op          = 'append'
+              pseudoName  = 'after'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not($context.has(" > .#{cls}"))
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.children(".#{cls}")
 
-          op = switch pseudoName
-            when 'before' then 'prepend'
-            when 'after' then 'append'
-            else console.error('BUG! unmatched pseudo-selector')
+            when ':outside'
+              op          = 'wrap'
+              pseudoName  = 'outside'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not $context.filter (node) ->
+                              $parent = $(node).parent()
+                              return $parent.hasClass(cls)
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.parent()
 
-          # Prepend/Append if the DOM node does not yet exist
-          cls = "js-polyfill-pseudo-#{pseudoName}"
-          $els = $els.not($els.has(" > .#{cls}"))
-          $els[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+            else break # Skip to the next pseudoNode so we do not create freshClass's
 
+
+          newClass = freshClass()
+          $context.addClass(newClass)
+
+          # Update the selectors in the AST to use the newClass
+          _.each node.selectors, (selector) ->
+            # TODO: If the elements containa a comment then preserve it (shows the original Selector for debugging)
+            index = 0
+            selector.elements = [new less.tree.Element('', ".#{newClass}", index)]
 
 
 RemoveDisplayNonePlugin =
@@ -331,7 +325,8 @@ SetContentPlugin =
             frame.setContent.push(node.value)
 
       operateOnElements: (frame, $els) ->
-        @dataAppendAll($els, 'polyfill-content', frame.setContent)
+        if not frame.hadPseudoSelectors
+          @dataAppendAll($els, 'polyfill-content', frame.setContent)
 
   domVisitor:
     class SetContentDomVisitor extends DomVisitor
@@ -339,6 +334,12 @@ SetContentPlugin =
       domVisit: ($node) ->
         # content can be a string OR a set of nodes (`move-to`)
         contents = @evalWithContext('polyfill-content', $node)
+
+        # delete the `polyfill-content` data.
+        # This runs after the MoveToPlugin and before the PseudoExpanderPlugin
+        # so polyfill-content gets set on non-pseudo elements.
+        # But then later on once the CounterPlugin runs this plugin runs again
+        $node.removeData('polyfill-content')
 
         # The `content:` rule is a bit annoying.
         #
@@ -376,10 +377,21 @@ SetContentPlugin =
                 strings.push(val.value)
 
             if isValid
+              # Do not replace pseudo elements
+              $pseudoEls = $node.children('.js-polyfill-pseudo')
+              $pseudoBefore = $pseudoEls.not(':not(.js-polyfill-pseudo-before)')
+              $pseudoRest = $pseudoEls.not($pseudoBefore)
+
               $node.empty()
+              # Fill in the before pseudo elements
+              $node.append($pseudoBefore)
+
               # Append 1-by-1 because they values may be multiple jQuery sets (like `content: pending(bucket1) pending(bucket2)`)
               for val in strings
                 $node.append(val)
+
+              # Fill in the rest of the pseudo elements
+              $node.append($pseudoRest)
 
 
 
@@ -680,8 +692,24 @@ window.CSSPolyfill = ($root, cssStyle, cb=null) ->
 
     # Run the plugins in multiple phases because move-to manipulates the DOM
     # and jQuery.data() disappears when the element detaches from the DOM
+
+
+    # Phases:
+    #
+    # 1. [-] Apply all non-interesting styles (like `display:none;`) to elements (no pseudo-selectors, no `content:`)
+    #        - convert selectors with pseudoselectors to .auto###:pseudo
+    # 2. [x] Move content
+    # 3. [x] Expand pseudoselectors to be real elements (`:before`, `:after`, `:outside`, `:outside(#)`)
+    # 4. [x] Calculate/Squirrel counter state on elements that have `counter-reset:` or `counter-increment:` rules)
+    # 5. [x] Populate `content:` for all things **except** `target-counter` or `target-text`
+    # 6. [x] Populate `content:` for things containing `target-counter` or `target-text`
+
     plugins = [
       ClassRenamerPlugin # Must be run **before** the MoveTo plugin so the styles continue to apply to the element when it is moved
+    ]
+    doStuff(plugins)
+
+    plugins = [
       MoveToPlugin # Run in the 1st phase because jQuery.data() is lost when DOM nodes move
       SetContentPlugin # Always run last
     ]

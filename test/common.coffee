@@ -171,16 +171,57 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
         simple(css, html, expected)
 
 
-    # it '', () ->
-    #   css = '''
-    #   '''
-    #   html = '''
-    #   '''
-    #   expected = '''
-    #   '''
-    #   simple(css, html, expected)
+      it 'supports nested :before, :after, and :outside selectors', () ->
+        css = '''
+          h3 { counter-increment: chap; }
+          // h3:before { content: 'Ch ' counter(chap) ': '; }
+          h3:before:before  { content: 'Ch '; }
+          h3:before         { content: counter(chap); }
+          h3:before:after   { content: ': '; }
+          h3:outside:before { content: '[chapter starts here]'; }
+
+          // The following is the same as before
+          .xref { content: 'See ' target-text(attr(href), content()); }
+          .xref-counter {
+            content: 'See Chapter ' target-counter(attr(href), chap);
+          }
+        '''
+        html = '''
+          <h3 id="ch1">The Appendicular Skeleton</h3>
+          <p>Here is a reference to another chapter:
+            <a href="#ch2" class="xref">Link</a>
+          </p>
+
+          <h3 id="ch2">The Brain and Cranial Nerves</h3>
+          <p>Here is a reference to another chapter:
+            <a href="#ch1" class="xref">Link</a>
+          </p>
+          <p>A reference using target-counter:
+            <a href="#ch1" class="xref-counter">Link</a>
+          </p>
+        '''
+        expected = '''
+          [chapter starts here]
+          Ch 1: The Appendicular Skeleton
+          Here is a reference to another chapter: See 2The Brain and Cranial Nerves
+
+          [chapter starts here]
+          Ch 2: The Brain and Cranial Nerves
+          Here is a reference to another chapter: See Ch 1: The Appendicular Skeleton
+
+          A reference using target-counter: See Chapter 1
+        '''
+        simple(css, html, expected)
 
 
+      # it '', () ->
+      #   css = '''
+      #   '''
+      #   html = '''
+      #   '''
+      #   expected = '''
+      #   '''
+      #   simple(css, html, expected)
 
 
 if exports?

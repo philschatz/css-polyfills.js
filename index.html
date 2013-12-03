@@ -35,8 +35,8 @@ a.xref {
              ': ' target-text(attr(href), content());
 }
 // Wrap Elements just for styling purposes
-.example:outside    { x-add-class: 'modal-content'; }
-.example:outside(2) { x-add-class: 'modal-dialog'; }</code></pre>
+.example:outside        { border: 1px solid red; }
+.example:outside:before { content: 'Exercise: '; }</code></pre>
 
     </div>
   </div>
@@ -110,7 +110,7 @@ h3:before { content: 'Ch ' counter(chap) ': '; }
 
 .xref-counter {
   content: 'See Chapter ' target-counter(attr(href), chap);
- }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
 
   <div class="html-editor">&lt;h3 id="ch1">The Appendicular Skeleton&lt;/h3>
 &lt;p>Here is a reference to another chapter:
@@ -128,6 +128,45 @@ h3:before { content: 'Ch ' counter(chap) ': '; }
 
 </div><!-- /row -->
 
+
+
+
+
+<h2>Making HTML elements in CSS</h2>
+<p>It may be useful to add elements into the HTML (for styling). CSS2 has the <code>:before</code> and <code>:after</code> selectors for this reason.</p>
+<p>The <a href="http://www.w3.org/TR/css3-content/#pseudo-elements">CSS3 Content Module</a> is like <code>:before</code> on steroids! You can nest the pseudo selectors to add and style arbitrarily large elements. It also introduces the <code>:outside</code> pseudoselector which wraps an element and adds additional styling.</p>
+<p>The example below builds on the previous example of using counters and <code>target-text</code> to allow styling individual parts of the injected "Ch #: " text.</p>
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">h3 { counter-increment: chap; }
+// h3:before { content: 'Ch ' counter(chap) ': '; }
+h3:before:before  { content: 'Ch '; }
+h3:before         { content: counter(chap); }
+h3:before:after   { content: ': '; }
+h3:outside:before { content: '[chapter starts here]'; }
+
+// The following is the same as before
+.xref { content: 'See ' target-text(attr(href), content()); }
+.xref-counter {
+  content: 'See Chapter ' target-counter(attr(href), chap);
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;h3 id="ch1">The Appendicular Skeleton&lt;/h3>
+&lt;p>Here is a reference to another chapter:
+  &lt;a href="#ch2" class="xref">Link&lt;/a>
+&lt;/p>
+
+&lt;h3 id="ch2">The Brain and Cranial Nerves&lt;/h3>
+&lt;p>Here is a reference to another chapter:
+  &lt;a href="#ch1" class="xref">Link&lt;/a>
+&lt;/p>
+&lt;p>A reference using target-counter:
+  &lt;a href="#ch1" class="xref-counter">Link&lt;/a>
+&lt;/p></div>
+
+
+</div><!-- /row -->
 
 
 
