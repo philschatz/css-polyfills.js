@@ -2,6 +2,7 @@
   "name": "css-polyfill",
   "version": "0.0.0",
   "scripts": {
+    "install": "bower install && cd node_modules/less && npm install && grunt browser && cd ../../",
     "blanket": {
       "pattern": [
         "css-polyfill.js"
@@ -9,11 +10,13 @@
     }
   },
   "dependencies": {
+    "less": "git://github.com/less/less.js.git#master"
   },
   "devDependencies": {
     "grunt-blanket-mocha": "git://github.com/philschatz/grunt-blanket-mocha.git#fixes-for-octokit.js",
     "chai": "~1.8.1",
-    "mocha": "~1.14.0"
+    "mocha": "~1.14.0",
+    "http-server": "~0.5.5"
   },
   "repository": {
     "type": "git",
