@@ -271,6 +271,34 @@ h3:outside:before { content: '[chapter starts here]'; }
 
 
 
+<h3>Setting Strings</h3>
+
+<p>Sometimes it is useful to set a string and then use it later. An example would be having the current chapter on each page of a book.</p>
+<p>Fortunately <a href="http://www.w3.org/TR/css3-gcpm/#named-strings">CSS Generated Content for Paged Media</a> defines the <code>string-set: string-name value;</code> and <code>content: string(string-name);</code> rules.</p>
+
+<p>An example is shown below:</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">// Set a string somewhere...
+h3 { string-set: chapter-title content(); }
+// ... And then use it!
+.chap-end { content: '[End of ' string(chapter-title) ']'; }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">
+&lt;h3>The Appendicular Skeleton&lt;/h3>
+&lt;p>Here is some content for the chapter.&lt;/p>
+&lt;div class="chap-end">&lt;/div>
+
+&lt;h3>The Brain and Cranial Nerves&lt;/h3>
+&lt;p>Here is some content for another chapter.&lt;/p>
+&lt;div class="chap-end">&lt;/div>
+</div>
+
+
+</div><!-- /row -->
+
 
 
 
