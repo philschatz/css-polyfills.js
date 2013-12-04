@@ -15,11 +15,11 @@
       <h1>CSS Polyfills</h1>
       <p>Describe more using CSS</p>
       <p>Use CSS to describe menial tasks in JavaScript like wrapping elements for styling, moving content around, numbering things, and more!</p>
-      <p><a href="#motivation" class="btn btn-primary btn-lg" role="button">Learn More</a> <a href="https://github.com/philschatz/css-polyfill" class="btn btn-success btn-lg" role="button"><i class="fa fa-github"></i> GitHub</a></p>
+      <p><a href="#motivation" class="btn btn-primary btn-lg" role="button">Learn More</a> <a href="https://github.com/philschatz/css-polyfill" target="_window" class="btn btn-success btn-lg" role="button"><i class="fa fa-github"></i> GitHub</a></p>
     </div>
     <div class="example">
 
-  <h3>What if you could use CSS to write:</h3>
+  <h3>What if you could use CSS to do more?</h3>
 
 <pre><code class="css">// Move content in the DOM
 .definition    { move-to: glossary-bucket; }
@@ -31,12 +31,17 @@
 }
 // Number links to other elements
 a.xref {
-  content: 'See ' target-counter(attr(href), chapter)
-             ': ' target-text(attr(href), content());
+  content: 'See Chap ' target-counter(attr(href), chapter)
+                  ': ' target-text(attr(href), content());
 }
 // Wrap Elements just for styling purposes
 .example:outside        { border: 1px solid red; }
-.example:outside:before { content: 'Exercise: '; }</code></pre>
+.example:outside:before { content: 'Exercise: '; }
+// Set a string ... and then use it
+h1 { string-set: chapter-title content(); }
+.chap-end { content: '[End of ' string(chapter-title) ']'; }</code></pre>
+
+      <div><a href="./test/" target="_window" class="btn btn-xs btn-default pull-right"><i class="fa fa-play"></i> run unit tests/coverage</a></div>
 
     </div>
   </div>
@@ -270,6 +275,34 @@ h3:outside:before { content: '[chapter starts here]'; }
 
 
 
+
+<h3>Setting Strings</h3>
+
+<p>Sometimes it is useful to set a string and then use it later. An example would be having the current chapter on each page of a book.</p>
+<p>Fortunately <a href="http://www.w3.org/TR/css3-gcpm/#named-strings">CSS Generated Content for Paged Media</a> defines the <code>string-set: string-name value;</code> and <code>content: string(string-name);</code> rules.</p>
+
+<p>An example is shown below:</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">// Set a string somewhere...
+h3 { string-set: chapter-title content(); }
+// ... And then use it!
+.chap-end { content: '[End of ' string(chapter-title) ']'; }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">
+&lt;h3>The Appendicular Skeleton&lt;/h3>
+&lt;p>Here is some content for the chapter.&lt;/p>
+&lt;div class="chap-end">&lt;/div>
+
+&lt;h3>The Brain and Cranial Nerves&lt;/h3>
+&lt;p>Here is some content for another chapter.&lt;/p>
+&lt;div class="chap-end">&lt;/div>
+</div>
+
+
+</div><!-- /row -->
 
 
 

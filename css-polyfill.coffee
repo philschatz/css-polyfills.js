@@ -46,12 +46,12 @@ class LessVisitor
 
 class AbstractSelectorVisitor extends LessVisitor
 
-  operateOnElements: (frame, $els) -> console.error('BUG! Need to implement this method')
+  operateOnElements: (frame, $els) -> console.error('BUG: Need to implement this method')
 
   # Helper to add things to jQuery.data()
   dataAppendAll: ($els, dataKey, exprs) ->
     if exprs
-      console.error('BUG: dataAppendAll takes an array of expressions') if exprs not instanceof Array
+      console.error('ERROR: dataAppendAll takes an array of expressions') if exprs not instanceof Array
       content = $els.data(dataKey) or []
       for c in exprs
         content.push(c)
@@ -423,7 +423,7 @@ parseCounters = (val, defaultNum) ->
       val = parseInt(tokens[i+1])
       i++
     # else
-    #  console.error('BUG! Unsupported Counter Token', tokens[i+1])
+    #  console.error('ERROR! Unsupported Counter Token', tokens[i+1])
     counters[name] = val
     i++
 
@@ -450,7 +450,7 @@ toRoman = (num) ->
     ['I',  1]
   ]
   if not (0 < num < 5000)
-    console.error 'number out of range (must be 1..4999)'
+    console.warn 'ERROR: number out of range (must be 1..4999)'
     return num
 
   result = ''
@@ -472,23 +472,23 @@ numberingStyle = (num, style='decimal') ->
       toRoman(num)
     when 'lower-latin'
       if not (1 <= num <= 26)
-        console.error 'number out of range (must be 1...26)'
+        console.error 'ERROR: number out of range (must be 1...26)'
       String.fromCharCode(num + 96)
     when 'upper-latin'
       if not (1 <= num <= 26)
-        console.error 'number out of range (must be 1...26)'
+        console.error 'ERROR: number out of range (must be 1...26)'
       String.fromCharCode(num + 64)
     when 'decimal'
       num
     else
-      console.warn "Counter numbering not supported for list type #{style}. Using decimal."
+      console.error "ERROR: Counter numbering not supported for list type #{style}. Using decimal."
       num
 
 
 CounterPlugin =
 
   definedFunctions:
-    counter: (counterName, counterStyle=null) ->
+    'counter': (counterName, counterStyle=null) ->
 
       counterName = counterName.value
       counterStyle = counterStyle?.value or 'decimal'
@@ -596,7 +596,7 @@ TargetCounterPlugin =
       counterStyle = counterStyle?.value or 'decimal'
 
       id = id.value
-      console.error('BUG: target-id MUST start with #') if id[0] != '#'
+      console.error('ERROR: target-id MUST start with #') if id[0] != '#'
       $target = $(id)
       if $target.length
         val = 0
@@ -604,7 +604,7 @@ TargetCounterPlugin =
           $node = $(node)
           if $node.is(".js-polyfill-counter-change-#{counterName}")
             counters = $node.data('polyfill-counter-state')
-            console.error('BUG: SHould have found a counter for this element') if not counters
+            console.error('BUG: Should have found a counter for this element') if not counters
             val = counters[counterName]
             return true
           # Otherwise, continue searching
@@ -614,7 +614,7 @@ TargetCounterPlugin =
 
       else
         # TODO: decide whether to fail silently by returning '' or return 'ERROR_TARGET_ID_NOT_FOUND'
-        console.warn('ERROR: target-counter id not found having id:', id)
+        console.error('ERROR: target-counter id not found having id:', id)
         return new ValueNode('ERROR_TARGET_ID_NOT_FOUND')
 
 
@@ -627,13 +627,13 @@ TargetTextPlugin =
       return new ValueNode(@env.$context.attr(attrName.value))
 
     'target-text': (id, whichNode=null) ->
-      console.error('BUG: target-id MUST start with #') if id.value[0] != '#'
+      console.error('ERROR: target-id MUST start with #') if id.value[0] != '#'
 
       $target = $(id.value)
 
       whichText = 'before' # default
       if whichNode
-        console.error('BUG: must be a content(...) call') if 'content' != whichNode.name
+        console.error('ERROR: must be a content(...) call') if 'content' != whichNode.name
         if whichNode.args.length == 0
           whichText = 'contents'
         else
@@ -644,9 +644,119 @@ TargetTextPlugin =
         when 'after'    then ret = $target.children('.js-polyfill-pseudo-after').text()
         when 'contents' then ret = $target.text() # TODO: ignore the pseudo elements
         when 'first-letter' then ret = $target.text()[0]
-        else console.error('BUG! invalid whichText')
+        else console.error('ERROR: Invalid argument to content()')
 
       return new ValueNode(ret)
+
+
+StringSetPlugin =
+  definedFunctions:
+    'string': (stringName) ->
+      stringName = stringName.value
+      val = @env.strings?[stringName]
+      if not (val or val == '')
+        console.warn("ERROR: using string that has not been set yet: name=[#{stringName}]")
+        val = ''
+      return new ValueNode(val)
+
+    # Valid options are `content()`, `content(before)`, `content(after)`, `content(first-letter)`
+    # TODO: Add support for `content(env(...))`
+    #
+    # Name it `x-content` instead of `content` because target-text takes an optional `content()` but it should
+    # be evaluated in the context of the target element, not the current context.
+    #
+    # NOTE: the default for `content()` is different for string-set (contents) than it is for target-text (before)
+    'x-content': (type=null) ->
+      val = null
+
+      # Return the contents of the current node **without** the pseudo elements
+      getContent = () =>
+        # To ignore the pseudo elements
+        # Clone the node and remove the pseudo elements.
+        # Then run .text().
+        $el = @env.$context.clone()
+        $el.children('.js-polyfill-pseudo').remove()
+        return $el.text()
+
+      if type
+        switch type.value
+          when 'before' then val = @env.$context.children('.js-polyfill-pseudo-before').text()
+          when 'after'  then val = @env.$context.children('.js-polyfill-pseudo-after').text()
+          when 'first-letter' then val = getContent().trim()[0] or '' # trim because 1st letter may be a space
+          else
+            val = type.toCSS({})
+            console.warn "ERROR: invalid argument to content(). argument=[#{val}]"
+            val = ''
+      else
+        val = getContent()
+
+      return new ValueNode(val)
+
+  lessVisitor:
+    class StringLessVisitor extends AbstractSelectorVisitor
+
+      visitRule: (node, visitArgs) ->
+        frame = @peek()
+        # TODO: test to see if this `content: ` is evaluatable using this set of polyfills
+        switch node.name
+          when 'string-set'
+            frame.setStringSet ?= []
+            frame.setStringSet.push(node.value)
+
+      operateOnElements: (frame, $els) ->
+        @dataAppendAll($els, 'polyfill-string-set', frame.setStringSet)
+
+
+  domVisitor:
+    class StringDomVisitor extends DomVisitor
+
+      domVisit: ($node) ->
+        @_env.strings ?= {} # make sure it is defined
+
+        exprs = @evalWithContext('polyfill-string-set', $node)
+        if exprs
+          val = exprs[exprs.length-1].eval(@_env)
+
+          # More than one string can be set using a single `string-set:`
+          setString = (val) =>
+            stringName = _.first(val.value).value
+            args = _.rest(val.value)
+
+            # Args can be strings, counters (which should get resolved by now) or content()
+            # loop and "evaluate" the various cases.
+            str = []
+            for arg in args
+              if arg instanceof less.tree.Quoted
+                str.push(arg.value)
+              else if arg instanceof less.tree.Call
+                if 'content' == arg.name
+                  arg.name = 'x-content'
+                  str.push(arg.eval(@_env).value)
+                  arg.name = 'content'
+                else
+                  console.warn("ERROR: invalid function used. only content() is acceptable. name=[#{arg.name}")
+              else
+                str.push(arg.value)
+
+            @_env.strings[stringName] = str.join('')
+
+          # More than one string can be set at once
+          if val instanceof less.tree.Expression
+            # 1 string is being set
+            setString(val)
+          else if val instanceof less.tree.Value
+            # More than one string is being set
+            for v in val.value
+              setString(v)
+          else
+            console.warn('ERROR: invalid arguments given to "string-set:"')
+
+          # Squirrel away the counters if this node is "interesting" (for target-counter)
+          $node.data('polyfill-string-state', _.clone(@_env.counters))
+          $node.addClass('js-polyfill-has-data')
+          $node.addClass("js-polyfill-polyfill-string-state")
+
+
 
 
 window.CSSPolyfill = ($root, cssStyle, cb=null) ->
@@ -731,6 +841,12 @@ window.CSSPolyfill = ($root, cssStyle, cb=null) ->
       TargetCounterPlugin
       TargetTextPlugin
       SetContentPlugin
+    ]
+    doStuff(plugins)
+
+    plugins = [
+      StringSetPlugin
+      SetContentPlugin # Used to populate content that just uses counter() for things like pseudoselectors
     ]
     doStuff(plugins)
 
