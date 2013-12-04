@@ -19,7 +19,7 @@
     </div>
     <div class="example">
 
-  <h3>What if you could use CSS to write:</h3>
+  <h3>What if you could use CSS to do more?</h3>
 
 <pre><code class="css">// Move content in the DOM
 .definition    { move-to: glossary-bucket; }
@@ -31,12 +31,15 @@
 }
 // Number links to other elements
 a.xref {
-  content: 'See ' target-counter(attr(href), chapter)
-             ': ' target-text(attr(href), content());
+  content: 'See Chap ' target-counter(attr(href), chapter)
+                  ': ' target-text(attr(href), content());
 }
 // Wrap Elements just for styling purposes
 .example:outside        { border: 1px solid red; }
-.example:outside:before { content: 'Exercise: '; }</code></pre>
+.example:outside:before { content: 'Exercise: '; }
+// Set a string ... and then use it
+h1 { string-set: chapter-title content(); }
+.chap-end { content: '[End of ' string(chapter-title) ']'; }</code></pre>
 
     </div>
   </div>
