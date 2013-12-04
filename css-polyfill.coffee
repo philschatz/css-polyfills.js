@@ -46,12 +46,12 @@ class LessVisitor
 
 class AbstractSelectorVisitor extends LessVisitor
 
-  operateOnElements: (frame, $els) -> console.error('BUG! Need to implement this method')
+  operateOnElements: (frame, $els) -> console.error('BUG: Need to implement this method')
 
   # Helper to add things to jQuery.data()
   dataAppendAll: ($els, dataKey, exprs) ->
     if exprs
-      console.error('BUG: dataAppendAll takes an array of expressions') if exprs not instanceof Array
+      console.error('ERROR: dataAppendAll takes an array of expressions') if exprs not instanceof Array
       content = $els.data(dataKey) or []
       for c in exprs
         content.push(c)
@@ -423,7 +423,7 @@ parseCounters = (val, defaultNum) ->
       val = parseInt(tokens[i+1])
       i++
     # else
-    #  console.error('BUG! Unsupported Counter Token', tokens[i+1])
+    #  console.error('ERROR! Unsupported Counter Token', tokens[i+1])
     counters[name] = val
     i++
 
@@ -450,7 +450,7 @@ toRoman = (num) ->
     ['I',  1]
   ]
   if not (0 < num < 5000)
-    console.error 'number out of range (must be 1..4999)'
+    console.warn 'ERROR: number out of range (must be 1..4999)'
     return num
 
   result = ''
@@ -472,16 +472,16 @@ numberingStyle = (num, style='decimal') ->
       toRoman(num)
     when 'lower-latin'
       if not (1 <= num <= 26)
-        console.error 'number out of range (must be 1...26)'
+        console.error 'ERROR: number out of range (must be 1...26)'
       String.fromCharCode(num + 96)
     when 'upper-latin'
       if not (1 <= num <= 26)
-        console.error 'number out of range (must be 1...26)'
+        console.error 'ERROR: number out of range (must be 1...26)'
       String.fromCharCode(num + 64)
     when 'decimal'
       num
     else
-      console.warn "Counter numbering not supported for list type #{style}. Using decimal."
+      console.error "ERROR: Counter numbering not supported for list type #{style}. Using decimal."
       num
 
 
@@ -596,7 +596,7 @@ TargetCounterPlugin =
       counterStyle = counterStyle?.value or 'decimal'
 
       id = id.value
-      console.error('BUG: target-id MUST start with #') if id[0] != '#'
+      console.error('ERROR: target-id MUST start with #') if id[0] != '#'
       $target = $(id)
       if $target.length
         val = 0
@@ -604,7 +604,7 @@ TargetCounterPlugin =
           $node = $(node)
           if $node.is(".js-polyfill-counter-change-#{counterName}")
             counters = $node.data('polyfill-counter-state')
-            console.error('BUG: SHould have found a counter for this element') if not counters
+            console.error('BUG: Should have found a counter for this element') if not counters
             val = counters[counterName]
             return true
           # Otherwise, continue searching
@@ -614,7 +614,7 @@ TargetCounterPlugin =
 
       else
         # TODO: decide whether to fail silently by returning '' or return 'ERROR_TARGET_ID_NOT_FOUND'
-        console.warn('ERROR: target-counter id not found having id:', id)
+        console.error('ERROR: target-counter id not found having id:', id)
         return new ValueNode('ERROR_TARGET_ID_NOT_FOUND')
 
 
@@ -627,13 +627,13 @@ TargetTextPlugin =
       return new ValueNode(@env.$context.attr(attrName.value))
 
     'target-text': (id, whichNode=null) ->
-      console.error('BUG: target-id MUST start with #') if id.value[0] != '#'
+      console.error('ERROR: target-id MUST start with #') if id.value[0] != '#'
 
       $target = $(id.value)
 
       whichText = 'before' # default
       if whichNode
-        console.error('BUG: must be a content(...) call') if 'content' != whichNode.name
+        console.error('ERROR: must be a content(...) call') if 'content' != whichNode.name
         if whichNode.args.length == 0
           whichText = 'contents'
         else
@@ -644,7 +644,7 @@ TargetTextPlugin =
         when 'after'    then ret = $target.children('.js-polyfill-pseudo-after').text()
         when 'contents' then ret = $target.text() # TODO: ignore the pseudo elements
         when 'first-letter' then ret = $target.text()[0]
-        else console.error('BUG! invalid whichText')
+        else console.error('ERROR: Invalid argument to content()')
 
       return new ValueNode(ret)
 
@@ -655,7 +655,7 @@ StringSetPlugin =
       stringName = stringName.value
       val = @env.strings?[stringName]
       if not (val or val == '')
-        console.warn("BUG: using string that has not been set yet: name=[#{stringName}]")
+        console.warn("ERROR: using string that has not been set yet: name=[#{stringName}]")
         val = ''
       return new ValueNode(val)
 
@@ -685,7 +685,7 @@ StringSetPlugin =
           when 'first-letter' then val = getContent().trim()[0] or '' # trim because 1st letter may be a space
           else
             val = type.toCSS({})
-            console.warn "BUG: invalid argument to content(). argument=[#{val}]"
+            console.warn "ERROR: invalid argument to content(). argument=[#{val}]"
             val = ''
       else
         val = getContent()
@@ -734,7 +734,7 @@ StringSetPlugin =
                   str.push(arg.eval(@_env).value)
                   arg.name = 'content'
                 else
-                  console.warn("BUG: invalid function used. only content() is acceptable. name=[#{arg.name}")
+                  console.warn("ERROR: invalid function used. only content() is acceptable. name=[#{arg.name}")
               else
                 str.push(arg.value)
 
@@ -749,7 +749,7 @@ StringSetPlugin =
             for v in val.value
               setString(v)
           else
-            console.warn('BUG: invalid arguments given to "string-set:"')
+            console.warn('ERROR: invalid arguments given to "string-set:"')
 
           # Squirrel away the counters if this node is "interesting" (for target-counter)
           $node.data('polyfill-string-state', _.clone(@_env.counters))
