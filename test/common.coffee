@@ -187,6 +187,57 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
         '''
         simple(css, html, expected)
 
+    describe 'target-counter', () ->
+      it 'does not care if the target occurs before, above, after, or below', () ->
+        css = '''
+          .chap { counter-increment: chap foo; }
+          .chap:before { content: 'Ch ' counter(chap) ': '; }
+
+          .xref {
+            content: 'See ' target-counter(attr(href), chap);
+          }
+        '''
+        html = '''
+          - <a href="#id1" class="xref">Link</a>
+          - <a href="#id2" class="xref">Link</a>
+          - <a href="#id3" class="xref">Link</a>
+          - <a href="#id4" class="xref">Link</a>
+
+
+          <div id="id1" class="chap">
+            <div id="id2" class="chap">
+              - <a href="#id1" class="xref">Link</a>
+              - <a href="#id2" class="xref">Link</a>
+              - <a href="#id3" class="xref">Link</a>
+              - <a href="#id4" class="xref">Link</a>
+            </div>
+          </div>
+
+
+          <div id="id3" class="chap">
+            <div id="id4" class="chap">
+              - <a href="#id1" class="xref">Link</a>
+              - <a href="#id2" class="xref">Link</a>
+              - <a href="#id3" class="xref">Link</a>
+              - <a href="#id4" class="xref">Link</a>
+            </div>
+          </div>
+
+          - <a href="#id1" class="xref">Link</a>
+          - <a href="#id2" class="xref">Link</a>
+          - <a href="#id3" class="xref">Link</a>
+          - <a href="#id4" class="xref">Link</a>
+        '''
+        expected = '''
+          - See 1 - See 2 - See 3 - See 4
+          Ch 1:
+          Ch 2: - See 1 - See 2 - See 3 - See 4
+          Ch 3:
+          Ch 4: - See 1 - See 2 - See 3 - See 4
+          - See 1 - See 2 - See 3 - See 4
+        '''
+        simple(css, html, expected)
+
     describe 'Website Examples', () ->
       it 'moves content', () ->
         css = '''
