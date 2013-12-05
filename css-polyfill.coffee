@@ -826,7 +826,7 @@ window.CSSPolyfill = ($root, cssStyle, cb=null) ->
     doStuff(plugins)
 
     plugins = [
-      PseudoExpanderPlugin
+      PseudoExpanderPlugin # Because of :outside this needs to run **after** MoveToPlugin
       RemoveDisplayNonePlugin # Important to run **before** the CounterPlugin
     ]
     doStuff(plugins)

@@ -238,6 +238,25 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
         '''
         simple(css, html, expected)
 
+    describe 'move-to', () ->
+      it 'runs before other plugins (why the ClassRenamerPlugin is necessary/used)', () ->
+        css = '''
+          .to-move { move-to: bucket-1; }
+          .initial .to-move:after { content: 'Passed'; }
+          .bucket { content: pending(bucket-1); }
+        '''
+        html = '''
+          <div class="initial">
+            <div class="to-move">Test </div>
+          </div>
+          <div class="bucket"></div>
+        '''
+        expected = '''
+          Test Passed
+        '''
+        simple(css, html, expected)
+
+
     describe 'Website Examples', () ->
       it 'moves content', () ->
         css = '''
