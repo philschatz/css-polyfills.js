@@ -191,7 +191,7 @@ class MoveTo
       delete env.state.buckets[bucketNameNode.value]
       return domAry or []
     'x-selector': (env, selectorNode) ->
-      console.warn("ERROR: x-selector(): expects a Quote") if selectorNode not instanceof less.tree.Quoted
+      console.warn("ERROR: x-selector(): expects a Quoted") if selectorNode not instanceof less.tree.Quoted
       return selectorNode.value
     'x-sort': (env, bucketElementsNode, sortBySelector=null) ->
       domAry = bucketElementsNode.eval(env).values
@@ -545,6 +545,9 @@ class FixedPointRunner
     for val in vals
       if val instanceof less.tree.Quoted
         ret.push(val.value)
+      else if val instanceof less.tree.Dimension
+        # Counters return a Number (less.tree.Dimension)
+        ret.push(val.value)
       else if val instanceof ArrayTreeNode
         # Append the elements in order
         for $el in val.values
@@ -553,7 +556,7 @@ class FixedPointRunner
         console.log("Not finished evaluating yet: #{val.name}")
         return null
       else
-        console.warn('BUG/ERROR: Pushing something unknown. maybe a jQuery object')
+        console.warn("ERROR: Pushing something unknown. [#{val.value}]")
         ret.push(val.value)
     return ret
 
@@ -645,6 +648,12 @@ class FixedPointRunner
           return new less.tree.Call(funcName, arguments)
         else if ret instanceof Array
           return new ArrayTreeNode(ret)
+        else if _.isString(ret)
+          # Just being a good LessCSS user. Could have just returned Anonymous
+          return new less.tree.Quoted("'#{ret}'", ret)
+        else if _.isNumber(ret)
+          # Just being a good LessCSS user. Could have just returned Anonymous
+          return new less.tree.Dimension(ret)
         else
           return new less.tree.Anonymous(ret)
 
