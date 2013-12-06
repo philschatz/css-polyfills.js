@@ -1,27 +1,3 @@
-class Plugin
-  providedFunctions: () -> {}
-  # domVisitor: (funcs, env) ->
-  # lessVisitor: ($root) ->
-
-
-class DomVisitor
-
-  constructor: (@_funcs={}, @_env={}) ->
-    # Register all the tree.functions to use the current node if they need to look up
-    for name, func of @_funcs
-      less.tree.functions[name] = func
-
-  evalWithContext: (dataKey, $context) ->
-    expr = $context.data(dataKey)
-    return if not expr
-
-    @_env.$context = $context
-
-    return expr
-
-  domVisit: ($node) ->
-
-
 class LessVisitor
   constructor: (@$root) ->
     @_visitor = new less.tree.visitor(@)
@@ -47,23 +23,6 @@ class LessVisitor
 class AbstractSelectorVisitor extends LessVisitor
 
   operateOnElements: (frame, $els) -> console.error('BUG: Need to implement this method')
-
-  # Helper to add things to jQuery.data()
-  dataAppendAll: ($els, dataKey, exprs) ->
-    if exprs
-      console.error('ERROR: dataAppendAll takes an array of expressions') if exprs not instanceof Array
-      content = $els.data(dataKey) or []
-      for c in exprs
-        content.push(c)
-      $els.data(dataKey, content)
-      $els.addClass('js-polyfill-has-data')
-      $els.addClass("js-polyfill-#{dataKey}")
-
-  dataSet: ($els, dataKey, expr) ->
-    if expr
-      $els.data(dataKey, expr)
-      $els.addClass('js-polyfill-has-data')
-      $els.addClass("js-polyfill-#{dataKey}")
 
   visitRuleset: (node, visitArgs) ->
     # Begin here.
@@ -95,304 +54,6 @@ class AbstractSelectorVisitor extends LessVisitor
 
 freshClassIdCounter = 0
 freshClass = () -> return "js-polyfill-autoclass-#{freshClassIdCounter++}"
-
-ClassRenamerPlugin =
-  lessVisitor:
-    class ClassRenamer extends AbstractSelectorVisitor
-      # Run preEval so we can change the selectors
-      isPreEvalVisitor: true
-
-      # Do this after visiting the selector so the AbstractSelectorVisitor has time to squirrel away the original selector
-      visitSelectorOut: (node, visitArgs) ->
-        frame = @peek()
-        # Rewrite the selector to use a class name
-        # but preserve pseudoselectors
-        newClass = freshClass()
-
-        index = 0 # optional, but it seems to be the "specificity"; maybe it should be extracted from the original selector
-        newElements = [
-          new less.tree.Element('', ".#{newClass}", index)
-          new less.tree.Comment(node.toCSS({}), true, index)
-        ]
-        oldElements = []
-        _.each node.elements, (el) ->
-          if /^:/.test(el.value)
-            newElements.push(el)
-          else if newElements.length > 2
-            # Anything following a pseudoselector gets pushed on as well (like `:outside (2)`)
-            newElements.push(el)
-          else
-            oldElements.push(el)
-        node.elements = newElements
-
-        frame.selectors ?= {}
-        frame.selectors[newClass] = oldElements
-
-      operateOnElements: (frame, $els) ->
-        for className, selector of frame.selectors
-          $els.addClass(className)
-
-
-# Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
-
-# Use a "custom" element name so CSS does not "pick these up" accidentally
-# TODO: have a pass at the end that converts them to <span> elements or something.
-PSEUDO_ELEMENT_NAME = 'polyfillpseudo'
-
-PseudoExpanderPlugin =
-  lessVisitor:
-    class PseudoSelectorExpander extends AbstractSelectorVisitor
-      # Modifies the AST so it should run pre-eval
-      isPreEvalVisitor: true
-      isPreVisitor: false
-      isReplacing: false
-
-      visitElement: (node, visitArgs) ->
-        super(arguments...)
-        frame = @peek()
-        isPseudo = /^:/.test(node.value)
-        if isPseudo or frame.pseudoSelectors # `:outside` may contain an additional `(0)` Element
-          frame.pseudoSelectors ?= []
-          frame.pseudoSelectors.push(node)
-
-      operateOnElements: (frame, $els, node) ->
-        $context = $els
-        for pseudoNode in frame.pseudoSelectors or []
-          switch pseudoNode.value
-            when ':before'
-              op          = 'prepend'
-              pseudoName  = 'before'
-              # See if the pseudo element exists.
-              # If not, add it to the DOM
-              cls         = "js-polyfill-pseudo-#{pseudoName}"
-              $needsNew   = $context.not($context.has(" > .#{cls}"))
-              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
-              # Update the context to be current pseudo element
-              $context = $context.children(".#{cls}")
-
-            when ':after'
-              op          = 'append'
-              pseudoName  = 'after'
-              # See if the pseudo element exists.
-              # If not, add it to the DOM
-              cls         = "js-polyfill-pseudo-#{pseudoName}"
-              $needsNew   = $context.not($context.has(" > .#{cls}"))
-              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
-              # Update the context to be current pseudo element
-              $context = $context.children(".#{cls}")
-
-            when ':outside'
-              op          = 'wrap'
-              pseudoName  = 'outside'
-              # See if the pseudo element exists.
-              # If not, add it to the DOM
-              cls         = "js-polyfill-pseudo-#{pseudoName}"
-              $needsNew   = $context.not $context.filter (node) ->
-                              $parent = $(node).parent()
-                              return $parent.hasClass(cls)
-              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
-              # Update the context to be current pseudo element
-              $context = $context.parent()
-
-            else break # Skip to the next pseudoNode so we do not create freshClass's
-
-
-          newClass = freshClass()
-          $context.addClass(newClass)
-
-          # Update the selectors in the AST to use the newClass
-          _.each node.selectors, (selector) ->
-            # TODO: If the elements containa a comment then preserve it (shows the original Selector for debugging)
-            index = 0
-            selector.elements = [new less.tree.Element('', ".#{newClass}", index)]
-
-
-RemoveDisplayNonePlugin =
-  lessVisitor:
-    class RemoveDisplayNone extends AbstractSelectorVisitor
-
-      visitRule: (node, visitArgs) ->
-        frame = @peek()
-        if 'display' == node.name
-          # Make sure the display is exactly `none`
-          # instead of checking if `none` is one of the Anonymous nodes
-          if 'none' == node.value.eval().value # node.value?.value?[0]?.value
-            frame.hasDisplayNone = true
-
-      operateOnElements: (frame, $els) ->
-        if frame.hasDisplayNone
-          $els.remove()
-
-
-# implements `less.tree.*` structure
-class ValueNode
-  # The `@value` is most important
-  constructor: (@value) ->
-  type: 'ValueNode',
-  eval: () -> @
-  compare: () -> console.error('BUG: Should not call compare on these nodes')
-  genCSS: () -> console.warn('BUG: Should not call genCSS on these nodes')
-  toCSS: () -> console.error('BUG: Should not call toCSS on these nodes')
-
-class SelectorValueNode
-  constructor: (@selector, @attr) ->
-  eval: () -> @
-
-MoveToPlugin =
-  definedFunctions:
-    # TODO: this func can be moved out of this plugin
-    'attr': (attrName) ->
-      return new ValueNode(@env.$context.attr(attrName.value))
-    'x-filter': (selector, attrName=null) ->
-      $els = @env.$context.find(selector.value)
-      if attrName
-        return new ValueNode($els.attr(attrName.value))
-      else
-        return new ValueNode($els)
-    'x-selector': (selector, attrName=null) ->
-      return new SelectorValueNode(selector.value, attrName?.value)
-
-    'x-sort': (pendingElsNode, selectorToCompare=null) ->
-      $pendingEls = pendingElsNode.value
-
-      # "Push" a frame on the context
-      $context = @env.$context
-
-      sorted = _.clone($pendingEls).sort (a, b) =>
-        if selectorToCompare
-          $a = $(a)
-          $b = $(b)
-          a = $a.find(selectorToCompare.selector).text()
-          b = $b.find(selectorToCompare.selector).text()
-        else
-          a = a.text()
-          b = b.text()
-        return -1 if (a < b)
-        return 1 if (a > b)
-        return 0
-
-      # "Pop" the frame off the context
-      @env.$context = $context
-
-      $sorted = $('EMPTY_SET_OF_NODES')
-      _.each sorted, (el) ->
-        $sorted = $sorted.add(el)
-      return new ValueNode($sorted)
-
-    pending: (val) ->
-      bucketName = val.eval(@env).value
-      if @env.buckets
-        $nodes = @env.buckets[bucketName] or $('EMPTY_SET_OF_NODES')
-        delete @env.buckets[bucketName]
-        return new ValueNode($nodes)
-
-  lessVisitor:
-    class MoveToLessVisitor extends AbstractSelectorVisitor
-
-      visitRule: (node, visitArgs) ->
-        frame = @peek()
-        switch node.name
-          when 'move-to'
-            # Make sure the display is exactly `none`
-            # instead of checking if `none` is one of the Anonymous nodes
-            frame.moveTo = node.value
-
-      operateOnElements: (frame, $els) ->
-        @dataSet($els, 'polyfill-move-to', frame.moveTo)
-
-  domVisitor:
-    class MoveToDomVisitor extends DomVisitor
-
-      domVisit: ($node) ->
-        moveBucket = @evalWithContext('polyfill-move-to', $node)?.eval(@_env).value
-        if moveBucket
-          @_env.buckets ?= {}
-          @_env.buckets[moveBucket] ?= []
-          @_env.buckets[moveBucket].push($node)
-          $node.detach() # Keep the jQuery.data()
-
-
-SetContentPlugin =
-  lessVisitor:
-    class SetContentVisitor extends AbstractSelectorVisitor
-
-      visitRule: (node, visitArgs) ->
-        frame = @peek()
-        # TODO: test to see if this `content: ` is evaluatable using this set of polyfills
-        switch node.name
-          when 'content'
-            frame.setContent ?= []
-            frame.setContent.push(node.value)
-
-      operateOnElements: (frame, $els) ->
-        if not frame.hadPseudoSelectors
-          @dataAppendAll($els, 'polyfill-content', frame.setContent)
-
-  domVisitor:
-    class SetContentDomVisitor extends DomVisitor
-
-      domVisit: ($node) ->
-        # content can be a string OR a set of nodes (`move-to`)
-        contents = @evalWithContext('polyfill-content', $node)
-
-        # delete the `polyfill-content` data.
-        # This runs after the MoveToPlugin and before the PseudoExpanderPlugin
-        # so polyfill-content gets set on non-pseudo elements.
-        # But then later on once the CounterPlugin runs this plugin runs again
-        $node.removeData('polyfill-content')
-
-        # The `content:` rule is a bit annoying.
-        #
-        # There can be many content rules, only some of which work with the
-        # polyfills loaded.
-
-        # TODO: Move this into the Visitor (but it needs to know that all of these will resolve)
-
-        # NOTE: There may be some "invalid" `content: ` options, keep trying until one works.
-        #
-        # NOTE: the "value" of `content: ` may be one of:
-        #
-        # - `tree.Quoted` value (ie `content: 'hello'; `)
-        # - `tree.Expression` containing `tree.Quoted` (ie `content: 'hello' ' there';`)
-        # - `tree.Expression` containing an unresolved `tree.Call` (ie `content: 'hello' foo();`)
-        # - `ValueNode` containing a set of elements (ie `content: pending(bucket-name); `)
-
-        if contents
-          for content in contents
-            expr = content.eval(@_env)
-
-            if expr.value instanceof Array and expr instanceof less.tree.Expression
-              exprValues = expr.value
-            else
-              exprValues = [expr]
-
-            # concatenate all the strings
-            strings = []
-            isValid = true
-            for val in exprValues
-              if val instanceof less.tree.Call
-                console.warn("Skipping {content: #{expr.toCSS()};} because no way to handle #{val.name}().")
-                isValid = false
-              else
-                strings.push(val.value)
-
-            if isValid
-              # Do not replace pseudo elements
-              $pseudoEls = $node.children('.js-polyfill-pseudo')
-              $pseudoBefore = $pseudoEls.not(':not(.js-polyfill-pseudo-before)')
-              $pseudoRest = $pseudoEls.not($pseudoBefore)
-
-              $node.empty()
-              # Fill in the before pseudo elements
-              $node.append($pseudoBefore)
-
-              # Append 1-by-1 because they values may be multiple jQuery sets (like `content: pending(bucket1) pending(bucket2)`)
-              for val in strings
-                $node.append(val)
-
-              # Fill in the rest of the pseudo elements
-              $node.append($pseudoRest)
-
 
 
 
@@ -461,7 +122,7 @@ toRoman = (num) ->
   result
 
 # Options are defined by http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type
-numberingStyle = (num, style='decimal') ->
+numberingStyle = (num=0, style='decimal') ->
   switch style
     when 'decimal-leading-zero'
       if num < 10 then "0#{num}"
@@ -485,320 +146,14 @@ numberingStyle = (num, style='decimal') ->
       num
 
 
-CounterPlugin =
-
-  definedFunctions:
-    'counter': (counterName, counterStyle=null) ->
-
-      counterName = counterName.value
-      counterStyle = counterStyle?.value or 'decimal'
-
-      # Defined by http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type
-      val = @env.counters?[counterName] or 0
-      return new ValueNode(numberingStyle(val, counterStyle))
-
-  lessVisitor:
-    class CounterLessVisitor extends AbstractSelectorVisitor
-
-      visitRule: (node, visitArgs) ->
-        frame = @peek()
-        # TODO: test to see if this `content: ` is evaluatable using this set of polyfills
-        switch node.name
-          when 'counter-reset'
-            frame.setCounterReset ?= []
-            frame.setCounterReset.push(node.value)
-          when 'counter-increment'
-            frame.setCounterIncrement ?= []
-            frame.setCounterIncrement.push(node.value)
-
-      operateOnElements: (frame, $els) ->
-        @dataAppendAll($els, 'polyfill-counter-reset', frame.setCounterReset)
-        @dataAppendAll($els, 'polyfill-counter-increment', frame.setCounterIncrement)
-
-        # For each element set a class marking which counters were changed in this node.
-        # This is useful for implementing `target-counter` since it will traverse
-        # backwards to the nearest node where the counter changes.
-        counters = {}
-        if frame.setCounterReset
-          # TODO: instead of using last, err on the side of caution and just use all counters
-          val = _.last(frame.setCounterReset).eval()
-          _.defaults(counters, parseCounters(val, true))
-        if frame.setCounterIncrement
-          val = _.last(frame.setCounterIncrement).eval()
-          _.defaults(counters, parseCounters(val, true))
-
-        for counterName of counters
-          $els.addClass("js-polyfill-counter-change")
-          $els.addClass("js-polyfill-counter-change-#{counterName}")
-
-
-
-  domVisitor:
-    class CounterDomVisitor extends DomVisitor
-
-      domVisit: ($node) ->
-        @_env.counters ?= {} # make sure it is defined
-        countersChanged = false
-
-        exprs = @evalWithContext('polyfill-counter-reset', $node)
-        if exprs
-          countersChanged = true
-          val = exprs[exprs.length-1].eval(@_env)
-          counters = parseCounters(val, 0)
-          _.extend(@_env.counters, counters)
-
-        exprs = @evalWithContext('polyfill-counter-increment', $node)
-        if exprs
-          countersChanged = true
-          val = exprs[exprs.length-1].eval(@_env)
-          counters = parseCounters(val, 1)
-          for key, value of counters
-            @_env.counters[key] ?= 0
-            @_env.counters[key] += value
-
-        # Squirrel away the counters if this node is "interesting" (for target-counter)
-        if countersChanged
-          $node.data('polyfill-counter-state', _.clone(@_env.counters))
-          $node.addClass('js-polyfill-has-data')
-          $node.addClass("js-polyfill-polyfill-counter-state")
-
-
-
-
-# TODO: Make this a recursive traversal (for Large Documents)
-findBefore = (el, root, iterator) ->
-  $root = $(root)
-  all = _.toArray($root.add($root.find('*')))
-
-  # Find the index of `el`
-  index = -1
-  for i in [0..all.length]
-    if all[i] == el
-      index = i
-      break
-
-  # iterate until `iterator` returns `true` or we run out of elements
-  ret = false
-  while not ret and index > -1
-    ret = iterator(all[index])
-    index--
-  return ret
-
-TargetCounterPlugin =
-  definedFunctions:
-    # TODO: this func can be moved out of this plugin
-    'attr': (attrName) ->
-      return new ValueNode(@env.$context.attr(attrName.value))
-
-    # Traverse the DOM until the nearest node where the counter changes is found
-    'target-counter': (id, counterName, counterStyle=null) ->
-      counterName = counterName.value
-      counterStyle = counterStyle?.value or 'decimal'
-
-      id = id.value
-      console.error('ERROR: target-id MUST start with #') if id[0] != '#'
-      $target = $(id)
-      if $target.length
-        val = 0
-        findBefore $target[0], $('body')[0], (node) ->
-          $node = $(node)
-          if $node.is(".js-polyfill-counter-change-#{counterName}")
-            counters = $node.data('polyfill-counter-state')
-            console.error('BUG: Should have found a counter for this element') if not counters
-            val = counters[counterName]
-            return true
-          # Otherwise, continue searching
-          return false
-
-        return new ValueNode(numberingStyle(val, counterStyle))
-
-      else
-        # TODO: decide whether to fail silently by returning '' or return 'ERROR_TARGET_ID_NOT_FOUND'
-        console.error('ERROR: target-counter id not found having id:', id)
-        return new ValueNode('ERROR_TARGET_ID_NOT_FOUND')
-
-
-
-TargetTextPlugin =
-
-  definedFunctions:
-    # TODO: this func can be moved out of this plugin
-    'attr': (attrName) ->
-      return new ValueNode(@env.$context.attr(attrName.value))
-
-    'target-text': (id, whichNode=null) ->
-      console.error('ERROR: target-id MUST start with #') if id.value[0] != '#'
-
-      $target = $(id.value)
-
-      whichText = 'before' # default
-      if whichNode
-        console.error('ERROR: must be a content(...) call') if 'content' != whichNode.name
-        if whichNode.args.length == 0
-          whichText = 'contents'
-        else
-          whichText = whichNode.args[0].value
-
-      switch whichText
-        when 'before'   then ret = $target.children('.js-polyfill-pseudo-before').text()
-        when 'after'    then ret = $target.children('.js-polyfill-pseudo-after').text()
-        when 'contents' then ret = $target.text() # TODO: ignore the pseudo elements
-        when 'first-letter' then ret = $target.text()[0]
-        else console.error('ERROR: Invalid argument to content()')
-
-      return new ValueNode(ret)
-
-
-StringSetPlugin =
-  definedFunctions:
-    'string': (stringName) ->
-      stringName = stringName.value
-      val = @env.strings?[stringName]
-      if not (val or val == '')
-        console.warn("ERROR: using string that has not been set yet: name=[#{stringName}]")
-        val = ''
-      return new ValueNode(val)
-
-    # Valid options are `content()`, `content(before)`, `content(after)`, `content(first-letter)`
-    # TODO: Add support for `content(env(...))`
-    #
-    # Name it `x-content` instead of `content` because target-text takes an optional `content()` but it should
-    # be evaluated in the context of the target element, not the current context.
-    #
-    # NOTE: the default for `content()` is different for string-set (contents) than it is for target-text (before)
-    'x-content': (type=null) ->
-      val = null
-
-      # Return the contents of the current node **without** the pseudo elements
-      getContent = () =>
-        # To ignore the pseudo elements
-        # Clone the node and remove the pseudo elements.
-        # Then run .text().
-        $el = @env.$context.clone()
-        $el.children('.js-polyfill-pseudo').remove()
-        return $el.text()
-
-      if type
-        switch type.value
-          when 'before' then val = @env.$context.children('.js-polyfill-pseudo-before').text()
-          when 'after'  then val = @env.$context.children('.js-polyfill-pseudo-after').text()
-          when 'first-letter' then val = getContent().trim()[0] or '' # trim because 1st letter may be a space
-          else
-            val = type.toCSS({})
-            console.warn "ERROR: invalid argument to content(). argument=[#{val}]"
-            val = ''
-      else
-        val = getContent()
-
-      return new ValueNode(val)
-
-  lessVisitor:
-    class StringLessVisitor extends AbstractSelectorVisitor
-
-      visitRule: (node, visitArgs) ->
-        frame = @peek()
-        # TODO: test to see if this `content: ` is evaluatable using this set of polyfills
-        switch node.name
-          when 'string-set'
-            frame.setStringSet ?= []
-            frame.setStringSet.push(node.value)
-
-      operateOnElements: (frame, $els) ->
-        @dataAppendAll($els, 'polyfill-string-set', frame.setStringSet)
-
-
-  domVisitor:
-    class StringDomVisitor extends DomVisitor
-
-      domVisit: ($node) ->
-        @_env.strings ?= {} # make sure it is defined
-
-        exprs = @evalWithContext('polyfill-string-set', $node)
-        if exprs
-          val = exprs[exprs.length-1].eval(@_env)
-
-          # More than one string can be set using a single `string-set:`
-          setString = (val) =>
-            stringName = _.first(val.value).value
-            args = _.rest(val.value)
-
-            # Args can be strings, counters (which should get resolved by now) or content()
-            # loop and "evaluate" the various cases.
-            str = []
-            for arg in args
-              if arg instanceof less.tree.Quoted
-                str.push(arg.value)
-              else if arg instanceof less.tree.Call
-                if 'content' == arg.name
-                  arg.name = 'x-content'
-                  str.push(arg.eval(@_env).value)
-                  arg.name = 'content'
-                else
-                  console.warn("ERROR: invalid function used. only content() is acceptable. name=[#{arg.name}")
-              else
-                str.push(arg.value)
-
-            @_env.strings[stringName] = str.join('')
-
-          # More than one string can be set at once
-          if val instanceof less.tree.Expression
-            # 1 string is being set
-            setString(val)
-          else if val instanceof less.tree.Value
-            # More than one string is being set
-            for v in val.value
-              setString(v)
-          else
-            console.warn('ERROR: invalid arguments given to "string-set:"')
-
-          # Squirrel away the counters if this node is "interesting" (for target-counter)
-          $node.data('polyfill-string-state', _.clone(@_env.counters))
-          $node.addClass('js-polyfill-has-data')
-          $node.addClass("js-polyfill-polyfill-string-state")
-
-
 
 
 window.CSSPolyfill = ($root, cssStyle, cb=null) ->
 
   p1 = new less.Parser()
-  p1.parse cssStyle, (err, val) ->
+  p1.parse cssStyle, (err, lessTree) ->
 
     return cb(err, value) if err
-
-    # Use a global env so various passes can share data (grumble)
-    env = {}
-
-    doStuff = (plugins) ->
-
-      lessPlugins = []
-      for plugin in plugins
-        lessPlugins.push(new (plugin.lessVisitor)($root)) if plugin.lessVisitor
-
-      # Use the same env for toCSS as the visitors so they can share context
-      # Use a global env so various passes can share data (grumble)
-      env.plugins = lessPlugins
-      val.toCSS(env)
-
-      funcs = {}
-      for plugin in plugins
-        for name, func of plugin.definedFunctions
-          funcs[name] = func
-
-      domVisitors = []
-      for plugin in plugins
-        if plugin.domVisitor
-          domVisitors.push(new (plugin.domVisitor)(funcs, env))
-
-
-      $root.find('*').each (i, el) ->
-        $el = $(el)
-        for v in domVisitors
-          v.domVisit($el)
-
-      #deregister the functions when done
-      for funcName of funcs
-        delete less.tree.functions[funcName]
 
     # Run the plugins in multiple phases because move-to manipulates the DOM
     # and jQuery.data() disappears when the element detaches from the DOM
@@ -814,41 +169,541 @@ window.CSSPolyfill = ($root, cssStyle, cb=null) ->
     # 5. [x] Populate `content:` for all things **except** `target-counter` or `target-text`
     # 6. [x] Populate `content:` for things containing `target-counter` or `target-text`
 
-    plugins = [
-      ClassRenamerPlugin # Must be run **before** the MoveTo plugin so the styles continue to apply to the element when it is moved
-    ]
-    doStuff(plugins)
+    class AutogenClass
+      # selector: less.tree.Selector # Used for calculating the priority (ie 'p > * > em')
+      # rules: [less.tree.Rule]
+      constructor: (@selector, @rules) ->
 
-    plugins = [
-      MoveToPlugin # Run in the 1st phase because jQuery.data() is lost when DOM nodes move
-      SetContentPlugin # Always run last
-    ]
-    doStuff(plugins)
+    class ClassRenamer extends AbstractSelectorVisitor
+      autogenClasses: {}
 
-    plugins = [
-      PseudoExpanderPlugin # Because of :outside this needs to run **after** MoveToPlugin
-      RemoveDisplayNonePlugin # Important to run **before** the CounterPlugin
-    ]
-    doStuff(plugins)
+      # Do this after visiting the selector so the AbstractSelectorVisitor has time to squirrel away the original selector
+      visitSelectorOut: (node, visitArgs) ->
+        frame = @peek()
+        # Rewrite the selector to use a class name
+        # but preserve pseudoselectors
+        newClassName = freshClass()
 
-    plugins = [
-      CounterPlugin # Run the counter plugin **before** TargetCounterPlugin so links to elements later in the DOM work
-      SetContentPlugin # Used to populate content that just uses counter() for things like pseudoselectors
-    ]
-    doStuff(plugins)
+        index = 0 # optional, but it seems to be the "specificity"; maybe it should be extracted from the original selector
+        newElements = [
+          new less.tree.Element('', ".#{newClassName}", index)
+          new less.tree.Comment(node.toCSS({}), true, index)
+        ]
+        oldElements = []
+        _.each node.elements, (el) ->
+          if /^:/.test(el.value)
+            newElements.push(el)
+          else if newElements.length > 2
+            # Anything following a pseudoselector gets pushed on as well (like `:outside (2)`)
+            newElements.push(el)
+          else
+            oldElements.push(el)
+        node.elements = newElements
 
-    plugins = [
-      TargetCounterPlugin
-      TargetTextPlugin
-      SetContentPlugin
-    ]
-    doStuff(plugins)
+        frame.hasPseudo = newElements.length > 2
 
-    plugins = [
-      StringSetPlugin
-      SetContentPlugin # Used to populate content that just uses counter() for things like pseudoselectors
-    ]
-    doStuff(plugins)
+        frame.selectors ?= {}
+        frame.selectors[newClassName] = oldElements
+
+      operateOnElements: (frame, $els, node) ->
+        for className, selector of frame.selectors
+          $els.addClass("js-polyfill-autoclass #{className}")
+          # Only add the classes that do not have pseudoselectors
+          # (those will be converted later)
+          if not frame.hasPseudo
+            @autogenClasses[className] = new AutogenClass(selector, node.rules)
+
+
+    classRenamer = new ClassRenamer($root)
+    env = {plugins: [classRenamer]}
+    lessTree.toCSS(env)
+
+
+    class MoveTo
+      runFirst: true
+      functions:
+        'pending': (env, bucketNameNode) ->
+          bucketNameNode = bucketNameNode.eval(env)
+          console.warn("ERROR: pending(): expects a Keyword") if bucketNameNode not instanceof less.tree.Keyword
+          domAry = env.state.buckets[bucketNameNode.value]
+          # Empty the bucket so it can be refilled later
+          delete env.state.buckets[bucketNameNode.value]
+          return domAry or []
+        'x-selector': (env, selectorNode) ->
+          console.warn("ERROR: x-selector(): expects a Quote") if selectorNode not instanceof less.tree.Quoted
+          return selectorNode.value
+        'x-sort': (env, bucketElementsNode, sortBySelector=null) ->
+          domAry = bucketElementsNode.eval(env).values
+
+          sorted = _.clone(domAry).sort (a, b) =>
+            if sortBySelector
+              $a = $(a)
+              $b = $(b)
+              a = $a.find(sortBySelector.value).text().trim()
+              b = $b.find(sortBySelector.value).text().trim()
+            else
+              a = a.text().trim()
+              b = b.text().trim()
+            return -1 if (a < b)
+            return 1 if (a > b)
+            return 0
+
+          return sorted
+
+
+      rules:
+        'move-to': (env, bucketNameNode) ->
+          bucketNameNode = bucketNameNode.eval(env)
+          console.warn("ERROR: move-to: expects a Keyword") if bucketNameNode not instanceof less.tree.Keyword
+
+          bucketName = bucketNameNode.value
+          env.state.buckets ?= {}
+          env.state.buckets[bucketName] ?= []
+          env.state.buckets[bucketName].push(env.helpers.$context)
+
+          # DO NOT DETACH because move-to can be called more than once on an element.... env.helpers.$context.detach()
+
+
+    # Like a less.tree.Anonymous node but explicitly saying it contains a jQuery set.
+    # created by move-to and used by `content: `
+    class ArrayTreeNode
+      constructor: (@values) ->
+      eval: () -> @
+
+    class FixedPointRunner
+      # plugins: []
+      # $root: jQuery(...)
+      # autogenClasses: {}
+      # functions: {}
+      # rules: {}
+
+      constructor: (@$root, @plugins, @autogenClasses) ->
+        @squirreledEnv = {} # id -> env map. Needs to persist across runs because the target may occur **after** the element that looks it up
+        @functions = {}
+        @rules = {}
+
+        for plugin in @plugins
+          @functions[funcName] = func for funcName, func of plugin.functions
+          @rules[ruleName] = ruleFunc for ruleName, ruleFunc of plugin.rules
+
+      # Detach all the functions so `lessNode.toCSS()` will generate the CSS
+      done: () ->
+        for funcName of @functions
+          delete less.tree.functions[funcName]
+
+      lookupAutogenClass: ($node) ->
+        classes = $node.attr('class').split(' ')
+        foundClass = null
+        for cls in classes
+          if /^js-polyfill-autoclass-/.test(cls)
+            console.error 'BUG: Multiple autogen classes. Canonicalize first!' if foundClass and @autogenClasses[cls]
+
+            foundClass ?= @autogenClasses[cls]
+
+        console.error 'Did not find autogenerated class in autoClasses' if not foundClass
+        return foundClass
+
+      # checks that valNode is non-null and none of the values are less.tree.Call
+      # If they are in fact all values then it returns an array of strings-or-$els
+      evaluateValNode: (valNode) ->
+        ret = []
+        if valNode instanceof less.tree.Expression
+          vals = valNode.value
+        else
+          vals = [valNode]
+
+        for val in vals
+          if val instanceof less.tree.Quoted
+            ret.push(val.value)
+          else if val instanceof ArrayTreeNode
+            # Append the elements in order
+            for $el in val.values
+              ret.push($el)
+          else if val instanceof less.tree.Call
+            console.log("Not finished evaluating yet: #{val.name}")
+            return null
+          else
+            console.warn('BUG/ERROR: Pushing something unknown. maybe a jQuery object')
+            ret.push(val.value)
+        return ret
+
+      tick: ($interesting) ->
+        somethingChanged = false
+        # env is a LessEnv (passed to `lessNode.eval()`) so it needs to contain a .state and .helpers
+        env =
+          state: {} # plugins will add `counters`, `strings`, `buckets`, etc
+          helpers:
+            # $context: null
+            interestingByHref: (href) =>
+              console.error 'BUG: href must start with a # character' if '#' != href[0]
+              id = href.substring(1)
+              console.error 'BUG: id was not marked and squirreled before being looked up' if not @squirreledEnv[id]
+              return @squirreledEnv[id]
+            markInterestingByHref: (href) =>
+              console.error 'BUG: href must start with a # character' if '#' != href[0]
+              id = href.substring(1)
+              wasAlreadyMarked = !! @squirreledEnv[id]
+              if not wasAlreadyMarked
+                somethingChanged = true
+                # Mark that this node will need to squirrel its env
+                @$root.find("##{id}").addClass('js-polyfill-interesting js-polyfill-target')
+              return !wasAlreadyMarked
+
+        for node in $interesting
+          $node = $(node)
+
+          env.helpers.$context = $node
+          autogenRules = @lookupAutogenClass($node).rules
+          for autogenRule in autogenRules
+            ruleName = autogenRule.name
+            ruleValNode = autogenRule.value
+
+            # update the env
+            @rules[ruleName]?(env, ruleValNode)
+
+          if not $node.is('.js-polyfill-evaluated')
+            # if the node has a `content:` rule then attempt to evaluate it
+            for autogenRule in autogenRules
+              if 'content' == autogenRule.name
+
+                valNode = autogenRule.value.eval(env)
+                # If valNode only contains values then all the function calls resolved
+                # so update the contents of the node and mark it as `evaluated`
+                values = @evaluateValNode(valNode)
+                if values
+                  somethingChanged = true
+
+                  # Do not replace pseudo elements
+                  $pseudoEls = $node.children('.js-polyfill-pseudo')
+                  $pseudoBefore = $pseudoEls.not(':not(.js-polyfill-pseudo-before)')
+                  $pseudoRest = $pseudoEls.not($pseudoBefore)
+
+                  $node.empty()
+                  # Fill in the before pseudo elements
+                  $node.append($pseudoBefore)
+
+                  # Append 1-by-1 because they values may be multiple jQuery sets (like `content: pending(bucket1) pending(bucket2)`)
+                  for val in values
+                    $node.append(val)
+
+                  # Fill in the rest of the pseudo elements
+                  $node.append($pseudoRest)
+
+                  $node.addClass('js-polyfill-evaluated')
+
+          if $node.is('.js-polyfill-target')
+            # Keep the helper functions (targetText uses them) but not the state
+            targetEnv =
+              helpers: _.clone(env.helpers)
+              state: JSON.parse(JSON.stringify(env.state)) # Perform a deep clone
+            targetEnv.helpers.$context = $node
+            @squirreledEnv[$node.attr('id')] = targetEnv
+
+        return somethingChanged
+
+      setUp: () ->
+        # Register all the functions with less.tree.functions
+        for funcName, func of @functions
+          # Wrap all the functions and attach them to `less.tree.functions`
+          wrapper = (funcName, func) -> () ->
+            ret = func.apply(@, [@env, arguments...])
+            # If ret is null or undefined then ('' is OK) mark that is was not evaluated
+            # by returning the original less.tree.Call
+            if not ret?
+              return new less.tree.Call(funcName, arguments)
+            else if ret instanceof Array
+              return new ArrayTreeNode(ret)
+            else
+              return new less.tree.Anonymous(ret)
+
+          less.tree.functions[funcName] = wrapper(funcName, func)
+
+
+      run: () ->
+        @setUp()
+
+        # Initially, interesting nodes are all the nodes that have an AutogenClass
+        $interesting = $root.find('.js-polyfill-autoclass, .js-polyfill-interesting')
+        $interesting.addClass('js-polyfill-interesting')
+
+        while @tick($interesting) # keep looping while somethingChanged
+          $interesting = $root.find('.js-polyfill-interesting')
+
+        # TODO: remove all `.js-polyfill-interesting, .js-polyfill-evaluated, .js-polyfill-target` classes
+        @done()
+
+
+
+
+    fixedPointRunner = new FixedPointRunner($root, [new MoveTo()], classRenamer.autogenClasses)
+    fixedPointRunner.run()
+
+
+
+
+    # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
+
+    # Use a "custom" element name so CSS does not "pick these up" accidentally
+    # TODO: have a pass at the end that converts them to <span> elements or something.
+    PSEUDO_ELEMENT_NAME = 'polyfillpseudo'
+
+    class PseudoExpander extends AbstractSelectorVisitor
+      # Modifies the AST so it should run pre-eval
+      isPreEvalVisitor: true
+      isPreVisitor: false
+      isReplacing: false
+
+
+      autogenClasses: {}
+
+      visitElement: (node, visitArgs) ->
+        super(arguments...)
+        frame = @peek()
+        isPseudo = /^:/.test(node.value)
+        if isPseudo or frame.pseudoSelectors # `:outside` may contain an additional `(0)` Element
+          frame.pseudoSelectors ?= []
+          frame.pseudoSelectors.push(node)
+
+      operateOnElements: (frame, $els, node) ->
+        $context = $els
+        for pseudoNode in frame.pseudoSelectors or []
+          switch pseudoNode.value
+            when ':before'
+              op          = 'prepend'
+              pseudoName  = 'before'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not($context.has(" > .#{cls}"))
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.children(".#{cls}")
+
+            when ':after'
+              op          = 'append'
+              pseudoName  = 'after'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not($context.has(" > .#{cls}"))
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.children(".#{cls}")
+
+            when ':outside'
+              op          = 'wrap'
+              pseudoName  = 'outside'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not $context.filter (node) ->
+                              $parent = $(node).parent()
+                              return $parent.hasClass(cls)
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.parent()
+
+            else break # Skip to the next pseudoNode so we do not create freshClass's
+
+
+        newClassName = freshClass()
+        $context.addClass("js-polyfill-autoclass #{newClassName}")
+
+        # Update the selectors in the AST to use the newClassName
+        _.each node.selectors, (selector) ->
+          # TODO: If the elements contains a comment then preserve it (shows the original Selector for debugging)
+          index = 0
+          selector.elements = [new less.tree.Element('', ".#{newClassName}", index)]
+
+        # TODO: Pull out the old selector for use in calculating priorities
+        @autogenClasses[newClassName] = new AutogenClass('SELECTOR_NOT_ADDED_YET', node.rules)
+
+
+    pseudoExpander = new PseudoExpander($root)
+    env = {plugins: [pseudoExpander]}
+    console.log 'After all the CSS transforms:'
+    console.log lessTree.toCSS(env)
+
+    # Remember all the classes for the next FixedPointRunner
+    autogenClasses = _.extend(classRenamer.autogenClasses, pseudoExpander.autogenClasses)
+
+    class DisplayNone
+      rules:
+        'display': (env, valNode) ->
+          valNode = valNode.eval(env)
+          return if valNode not instanceof less.tree.Anonymous
+
+          if 'none' == valNode.value
+            env.helpers.$context.detach()
+
+
+    class TargetCounter
+      functions:
+        'attr': (env, attrNameNode) ->
+          attrNameNode = attrNameNode.eval(env)
+          console.warn("ERROR: attr(): expects a Keyword") if attrNameNode not instanceof less.tree.Keyword
+          return env.helpers.$context.attr(attrNameNode.value) or ''
+        'counter': (env, counterNameNode, counterType=null) ->
+          counterNameNode = counterNameNode.eval(env)
+          console.warn("ERROR: counter(): expects a Keyword") if counterNameNode not instanceof less.tree.Keyword
+          return numberingStyle(env.state.counters?[counterNameNode.value], counterType?.eval(env).value)
+        'target-counter': (env, targetIdNode, counterNameNode, counterType=null) ->
+          counterNameNode = counterNameNode.eval(env)
+          console.warn("ERROR: target-counter(): expects a Keyword") if counterNameNode not instanceof less.tree.Keyword
+          href = targetIdNode.eval(env).value
+          counterName = counterNameNode.value
+          # Mark the target as interesting if it is not already
+          if not env.helpers.markInterestingByHref(href)
+            # It has already been marked
+            targetEnv = env.helpers.interestingByHref(href)
+            return numberingStyle(targetEnv.state.counters?[counterName], counterType?.eval(env).value)
+          # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
+          return null
+
+      rules:
+        'counter-increment': (env, valNode) ->
+          countersAndNumbers = valNode.eval(env)
+          counters = parseCounters(countersAndNumbers, 1)
+          env.state.counters ?= {}
+          for counterName, counterValue of counters
+            env.state.counters[counterName] ?= 0
+            env.state.counters[counterName] += counterValue
+        'counter-reset': (env, valNode) ->
+          countersAndNumbers = valNode.eval(env)
+          counters = parseCounters(countersAndNumbers, 0)
+          env.state.counters ?= {}
+          for counterName, counterValue of counters
+            env.state.counters[counterName] = counterValue
+
+
+
+    # This is used by target-text and string-set
+    # Valid options are `content(contents)`, `content(before)`, `content(after)`, `content(first-letter)`
+    # TODO: Add support for `content(env(...))`
+    #
+    # Name it `x-content` instead of `content` because target-text takes an optional `content()` but it should
+    # be evaluated in the context of the target element, not the current context.
+    #
+    # NOTE: the default for `content()` is different for string-set (contents) than it is for target-text (before)
+    contentsFuncBuilder = (defaultType) -> (env, typeNode) ->
+      typeNode = typeNode?.eval(env)
+      console.warn("ERROR: content(): expects a Keyword") if typeNode not instanceof less.tree.Keyword
+
+      # Return the contents of the current node **without** the pseudo elements
+      getContents = () =>
+        # To ignore the pseudo elements
+        # Clone the node and remove the pseudo elements.
+        # Then run .text().
+        $el = env.helpers.$context.clone()
+        $el.children('.js-polyfill-pseudo').remove()
+        # if $el.is('.js-polyfill-evaluated')
+        #   return $el.text()
+        # else return null
+        return $el.text()
+
+      type = typeNode?.value or defaultType
+      switch type
+        when 'contents'
+          val = getContents()
+        when 'first-letter' then val = getContents()?.trim()[0] # trim because 1st letter may be a space
+        when 'before'
+          $pseudos = env.helpers.$context.children('.js-polyfill-pseudo-before')
+          if $pseudos.is('.js-polyfill-evaluated')
+            val = $pseudos.text()
+        when 'after'
+          $pseudos = env.helpers.$context.children('.js-polyfill-pseudo-after')
+          if $pseudos.is('.js-polyfill-evaluated')
+            val = $pseudos.text()
+        else
+          val = typeNode.toCSS({})
+          console.warn "ERROR: invalid argument to content(). argument=[#{val}]"
+          val = ''
+
+      return val
+
+
+
+
+    class TargetText
+      functions:
+        'x-target-text-content': contentsFuncBuilder('before')
+
+        'target-text': (env, targetIdNode, contentTypeNode=null) ->
+          href = targetIdNode.eval(env).value
+          # Mark the target as interesting if it is not already
+          if not env.helpers.markInterestingByHref(href)
+            # It has already been marked
+            targetEnv = env.helpers.interestingByHref(href)
+            console.warn("ERROR: target-text() expects a function Call") if contentTypeNode not instanceof less.tree.Call
+            console.warn("ERROR: target-text() expects a Call to content()") if 'content' != contentTypeNode.name
+            # Change the name of the function so it can be evaluated (in the context of the target)
+            contentTypeNode.name = 'x-target-text-content'
+            contents = contentTypeNode.eval(targetEnv).value
+            contentTypeNode.name = 'content'
+            return contents
+          # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
+          return null
+
+
+    class StringSet
+      functions:
+        'x-string-set-content': contentsFuncBuilder('contents')
+        'string': (env, stringNameNode) ->
+          stringNameNode = stringNameNode.eval(env)
+          console.warn("ERROR: string(): expects a Keyword") if stringNameNode not instanceof less.tree.Keyword
+
+          str = env.state.strings?[stringNameNode.value]
+          return str
+
+      rules:
+        'string-set': (env, stringsAndVals) ->
+          stringsAndVals = stringsAndVals.eval(env)
+
+          # More than one string can be set using a single `string-set:`
+          setString = (val) =>
+            stringName = _.first(val.value).value
+            args = _.rest(val.value)
+
+            # Args can be strings, counters (which should get resolved by now) or content()
+            # loop and "evaluate" the various cases.
+            str = []
+            for arg in args
+              if arg instanceof less.tree.Quoted
+                str.push(arg.value)
+              else if arg instanceof less.tree.Call
+                if 'content' == arg.name
+                  arg.name = 'x-string-set-content'
+                  val = arg.eval(env)
+                  # If the target `content:` rule has not been evaluated yet then wait.
+                  if val instanceof less.tree.Call
+                    return null
+                  str.push(val.value)
+                  arg.name = 'content'
+                else
+                  console.warn("ERROR: invalid function used. only content() is acceptable. name=[#{arg.name}")
+              else
+                str.push(arg.value)
+
+            env.state.strings ?= {}
+            env.state.strings[stringName] = str.join('')
+
+          # More than one string can be set at once
+          if stringsAndVals instanceof less.tree.Expression
+            # 1 string is being set
+            setString(stringsAndVals)
+          else if stringsAndVals instanceof less.tree.Value
+            # More than one string is being set
+            for v in stringsAndVals.value
+              setString(v)
+          else
+            console.warn('ERROR: invalid arguments given to "string-set:"')
+
+
+
+
+    fixedPointRunner = new FixedPointRunner($root, [new DisplayNone(), new TargetCounter(), new TargetText(), new StringSet()], autogenClasses)
+    fixedPointRunner.run()
+
 
     # return the converted CSS
     cb?(null, val.toCSS({}))

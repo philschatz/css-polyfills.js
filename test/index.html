@@ -14,14 +14,16 @@
 <script src="../bower_components/coffee-script/extras/coffee-script.js"></script>
 <script src="../node_modules/mocha/mocha.js"></script>
 <script src="../node_modules/chai/chai.js"></script>
-<script src="../bower_components/blanket/dist/mocha/blanket_mocha.js"></script>
-<script type="text/javascript" src="../node_modules/grunt-blanket-mocha/support/mocha-blanket.js"></script>
+<!-- <script src="../bower_components/blanket/dist/mocha/blanket_mocha.js"></script> -->
+<!-- <script type="text/javascript" src="../node_modules/grunt-blanket-mocha/support/mocha-blanket.js"></script> -->
 <script>
   mocha.setup('bdd');
 </script>
 
 <script src="../node_modules/less/test/browser/less.js"></script>
-<script data-cover src="../css-polyfill.js"></script>
+<!-- <script data-cover src="../css-polyfill.js"></script> -->
+<script type="text/coffeescript" src="../css-polyfill.coffee"></script>
+
 <script type="text/coffeescript" src="common.coffee"></script>
 <script type="text/coffeescript" src="browser.coffee"></script>
 

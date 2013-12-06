@@ -127,7 +127,7 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
         '''
         simple(css, html, expected)
 
-      it 'sets a string based on counters (TODO: There is an ordering problem between content(before) and SetContentPlugin not populating the pseudelement right AFTER it populates the current element)', () ->
+      it 'sets a string based on counters', () ->
         css = '''
           .setter { counter-reset: counter-1 42;
                     string-set: string-1 counter(counter-1); }
@@ -142,17 +142,17 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
         '''
         simple(css, html, expected)
 
-      it 'sets an unset string', () ->
-        css = '''
-          .bucket { content: '[' string(string-1) ']'; }
-        '''
-        html = '''
-          <div class="bucket"></div>
-        '''
-        expected = '''
-          []
-        '''
-        simple(css, html, expected)
+      # it 'sets an unset string', () ->
+      #   css = '''
+      #     .bucket { content: '[' string(string-1) ']'; }
+      #   '''
+      #   html = '''
+      #     <div class="bucket"></div>
+      #   '''
+      #   expected = '''
+      #     []
+      #   '''
+      #   simple(css, html, expected)
 
       it 'fails gracefully when given bad arguments (NOTE: part of this test is commented out)', () ->
         css = '''
@@ -239,6 +239,45 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
         simple(css, html, expected)
 
     describe 'move-to', () ->
+      it 'moves content later in the document', () ->
+        css = '''
+          .to-move { move-to: bucket-1; }
+          .bucket { content: pending(bucket-1); }
+        '''
+        html = '''
+          <div class="initial">
+            <div class="to-move">Test</div>
+            <div class="to-move">Passed</div>
+          </div>
+          <div class="bucket"></div>
+        '''
+        expected = '''
+          TestPassed
+        '''
+        simple(css, html, expected)
+
+      it 'resets the bucket', () ->
+        css = '''
+          .to-move { move-to: bucket-1; }
+          .bucket { content: pending(bucket-1); }
+        '''
+        html = '''
+          <div class="initial">
+            <div class="to-move">Test</div>
+          </div>
+          <div class="bucket"></div>
+          ...
+          <div class="initial">
+            <div class="to-move">Passed</div>
+          </div>
+          <div class="bucket"></div>
+
+        '''
+        expected = '''
+          Test...Passed
+        '''
+        simple(css, html, expected)
+
       it 'runs before other plugins (why the ClassRenamerPlugin is necessary/used)', () ->
         css = '''
           .to-move { move-to: bucket-1; }
@@ -255,6 +294,116 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
           Test Passed
         '''
         simple(css, html, expected)
+
+    describe 'Counters', () ->
+      it 'uses 0 if no counter has been set', () ->
+        css = '''
+          .output { content: counter(counter-a); }
+        '''
+        html = '''
+          <div class="output"></div>
+        '''
+        expected = '''
+          0
+        '''
+        simple(css, html, expected)
+
+      describe 'counter-reset', () ->
+        it 'resets a single counter with no specific value', () ->
+          css = '''
+            .figure { counter-reset: counter-a; }
+            .output { content: counter(counter-a); }
+          '''
+          html = '''
+            <div class="figure"></div>
+            <div class="output"></div>
+          '''
+          expected = '''
+            0
+          '''
+          simple(css, html, expected)
+
+        it 'resets a single counter with a specific value', () ->
+          css = '''
+            .figure { counter-reset: counter-a -1; }
+            .output { content: counter(counter-a); }
+          '''
+          html = '''
+            <div class="figure"></div>
+            <div class="output"></div>
+          '''
+          expected = '''
+            -1
+          '''
+          simple(css, html, expected)
+
+        it 'resets multiple counters', () ->
+          css = '''
+            .figure { counter-reset: counter-a -1 counter-b; }
+            .output-a { content: counter(counter-a); }
+            .output-b { content: counter(counter-b); }
+          '''
+          html = '''
+            <div class="figure"></div>
+            <div class="output-a"></div>
+            <div class="output-b"></div>
+          '''
+          expected = '''
+            -10
+          '''
+          simple(css, html, expected)
+
+      describe 'counter-increment', () ->
+        it 'increments by 1 by default', () ->
+          css = '''
+            .figure { counter-increment: counter-a; }
+            .output { content: counter(counter-a); }
+          '''
+          html = '''
+            <div class="figure"></div>
+            <div class="output"></div>
+            <div class="figure"></div>
+            <div class="output"></div>
+          '''
+          expected = '''
+            1
+            2
+          '''
+          simple(css, html, expected)
+
+        it 'increments by a negative number', () ->
+          css = '''
+            .figure { counter-increment: counter-a -2; }
+            .output { content: counter(counter-a); }
+          '''
+          html = '''
+            <div class="figure"></div>
+            <div class="output"></div>
+            <div class="figure"></div>
+            <div class="output"></div>
+          '''
+          expected = '''
+            -2
+            -4
+          '''
+          simple(css, html, expected)
+
+        it 'increments multiple counters', () ->
+          css = '''
+            .figure { counter-increment: counter-a -2 counter-b counter-c; }
+            .output { content: '[' counter(counter-a) ':' counter(counter-b) ':' counter(counter-c) ']'; }
+          '''
+          html = '''
+            <div class="figure"></div>
+            <div class="output"></div>
+            <div class="figure"></div>
+            <div class="output"></div>
+          '''
+          expected = '''
+            [-2:1:1]
+            [-4:2:2]
+          '''
+          simple(css, html, expected)
 
 
     describe 'Website Examples', () ->
@@ -306,7 +455,7 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
           h3 { counter-increment: chap; }
           h3:before { content: 'Ch ' counter(chap) ': '; }
 
-          .xref { content: 'See ' target-text(attr(href), content()); }
+          .xref { content: 'See ' target-text(attr(href), content(contents)); }
 
           .xref-counter {
             content: 'See Chapter ' target-counter(attr(href), chap);
@@ -328,10 +477,10 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
         '''
         expected = '''
           Ch 1: The Appendicular Skeleton
-          Here is a reference to another chapter: See Ch 2: The Brain and Cranial Nerves
+          Here is a reference to another chapter: See The Brain and Cranial Nerves
 
           Ch 2: The Brain and Cranial Nerves
-          Here is a reference to another chapter: See Ch 1: The Appendicular Skeleton
+          Here is a reference to another chapter: See The Appendicular Skeleton
 
           A reference using target-counter: See Chapter 1
         '''
@@ -419,7 +568,7 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
           h3:outside:before { content: '[chapter starts here]'; }
 
           // The following is the same as before
-          .xref { content: 'See ' target-text(attr(href), content()); }
+          .xref { content: 'See ' target-text(attr(href), content(contents)); }
           .xref-counter {
             content: 'See Chapter ' target-counter(attr(href), chap);
           }
@@ -441,11 +590,11 @@ makeTests = (_, assert, expect, CSSPolyfill) ->
         expected = '''
           [chapter starts here]
           Ch 1: The Appendicular Skeleton
-          Here is a reference to another chapter: See 2The Brain and Cranial Nerves
+          Here is a reference to another chapter: See The Brain and Cranial Nerves
 
           [chapter starts here]
           Ch 2: The Brain and Cranial Nerves
-          Here is a reference to another chapter: See Ch 1: The Appendicular Skeleton
+          Here is a reference to another chapter: See The Appendicular Skeleton
 
           A reference using target-counter: See Chapter 1
         '''

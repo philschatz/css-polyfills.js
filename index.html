@@ -111,7 +111,7 @@ h1 { string-set: chapter-title content(); }
 h3 { counter-increment: chap; }
 h3:before { content: 'Ch ' counter(chap) ': '; }
 
-.xref { content: 'See ' target-text(attr(href), content()); }
+.xref { content: 'See ' target-text(attr(href), content(contents)); }
 
 .xref-counter {
   content: 'See Chapter ' target-counter(attr(href), chap);
@@ -152,7 +152,7 @@ h3:before:after   { content: ': '; }
 h3:outside:before { content: '[chapter starts here]'; }
 
 // The following is the same as before
-.xref { content: 'See ' target-text(attr(href), content()); }
+.xref { content: 'See ' target-text(attr(href), content(contents)); }
 .xref-counter {
   content: 'See Chapter ' target-counter(attr(href), chap);
 }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
