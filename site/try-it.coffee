@@ -49,8 +49,6 @@ require [
     cssText = $tryItExample.find('.css-editor code').text()
     htmlText = $tryItExample.find('.html-editor').text()
 
-    console.log 'dsjkfhskdjfh', cssText
-
     cssSession.setValue(cssText)
     htmlSession.setValue(htmlText)
 
