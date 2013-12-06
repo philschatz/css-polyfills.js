@@ -696,25 +696,23 @@ window.CSSPolyfill = ($root, cssStyle, cb=null) ->
 
     autogenClasses = {}
 
-    changeLessTree = (plugin) ->
-      env = {plugins: [plugin]}
+    changeLessTree = (plugins) ->
+      env = {plugins: plugins}
       lessTree.toCSS(env)
-      _.extend(autogenClasses, plugin.autogenClasses)
+      for plugin in plugins
+        _.extend(autogenClasses, plugin.autogenClasses)
 
     runFixedPoint = (plugins) ->
       fixedPointRunner = new FixedPointRunner($root, plugins, autogenClasses)
       fixedPointRunner.run()
 
 
-    changeLessTree(new ClassRenamer($root))
-
-
-    changeLessTree(new PseudoExpander($root))
-
-    runFixedPoint [new MoveTo()]
+    changeLessTree [new ClassRenamer($root), new PseudoExpander($root)]
 
     console.log 'After all the CSS transforms:'
     console.log lessTree.toCSS({})
+
+    runFixedPoint [new MoveTo()]
 
     runFixedPoint [
       new DisplayNone()
