@@ -66,7 +66,18 @@ h1 { string-set: chapter-title content(); }
 <p>Below are some interactive examples showing how powerful CSS can be at describing these common operations.</p>
 
 
-<h2>Moving Content</h2>
+<h2>Sections</h2>
+<ul>
+  <li><a href="#section-moving">Moving Content</a></li>
+  <li><a href="#section-target-counters">Looking up Cross-referenced text and counters</a></li>
+  <li><a href="#section-elements">Making HTML elements in CSS</a></li>
+  <li><a href="#section-extensions">Adding Extensions</a></li>
+  <li><a href="#section-footnotes"><strong>Putting it Together: Footnotes (Clickable and Floating)</strong></a></li>
+</ul>
+
+<hr/>
+
+<h2 id="section-moving">Moving Content</h2>
 <p>Moving content in the DOM is simple using the <code class="css">move-to: bucket-name;</code> and <code class="css">content: pending(bucket-name);</code> rules defined in <a href="http://www.w3.org/TR/css3-content/#moving">CSS3 Generated and Replaced Content Module</a>.</p>
 <div class="row try-it-example">
 
@@ -103,7 +114,7 @@ h1 { string-set: chapter-title content(); }
 
 
 
-<h2>Looking up Cross-referenced text and counters</h2>
+<h2 id="section-target-counters">Looking up Cross-referenced text and counters</h2>
 <p>Looking up text inside some other element is simple using the <code class="css">content: target-text(attr(href));</code> and <code class="css">content: target-counter(attr(href), chapter-coutner);</code> rules defined in <a href="http://www.w3.org/TR/css3-gcpm/#cross-references">CSS Generated Content for Paged Media Module</a>.</p>
 <div class="row try-it-example">
 
@@ -141,7 +152,7 @@ h3:before { content: 'Ch ' counter(chap) ': '; }
 
 
 
-<h2>Making HTML elements in CSS</h2>
+<h2 id="section-elements">Making HTML elements in CSS</h2>
 <p>It may be useful to add elements into the HTML (for styling). CSS2 has the <code>:before</code> and <code>:after</code> selectors for this reason.</p>
 <p>The <a href="http://www.w3.org/TR/css3-content/#pseudo-elements">CSS3 Content Module</a> is like <code>:before</code> on steroids! You can nest the pseudo selectors to add and style arbitrarily large elements. It also introduces the <code>:outside</code> pseudoselector which wraps an element and adds additional styling.</p>
 <p>The example below builds on the previous example of using counters and <code>target-text</code> to allow styling individual parts of the injected "Ch #: " text.</p>
@@ -182,13 +193,13 @@ h3:outside:before { content: '[chapter starts here]'; }
 
 
 
-<h3>Adding Extensions</h3>
+<h2 id="section-extensions">Adding Extensions</h2>
 
 <p>Continuing with the Move example, it may be nice to sort the elements being moved like in a glossary.</p>
 <p>Adding these extensions is pretty straightforward. Here is the definition of <code class="css">x-sort(bucket)</code>.</p>
 
 <pre>
-'x-sort': ($context, pendingElsNode) ->
+'x-sort': (env, pendingElsNode) ->
   $pendingEls = pendingElsNode.value
   sorted = _.clone($pendingEls).sort (a, b) ->
     a = a.text()
@@ -236,7 +247,7 @@ h3:outside:before { content: '[chapter starts here]'; }
 
 
 
-<h3>More Extensions</h3>
+<h2 id="section-more-extensions">More Extensions</h2>
 
 <p>Sometimes it is useful to sort by something other than the text.</p>
 <p>With the polyfills you can add a second argument to sort that provides a selector to specify what to sort on.</p>
@@ -280,7 +291,7 @@ h3:outside:before { content: '[chapter starts here]'; }
 
 
 
-<h3>Setting Strings</h3>
+<h3 id="section-strings">Setting Strings</h3>
 
 <p>Sometimes it is useful to set a string and then use it later. An example would be having the current chapter on each page of a book.</p>
 <p>Fortunately <a href="http://www.w3.org/TR/css3-gcpm/#named-strings">CSS Generated Content for Paged Media</a> defines the <code>string-set: string-name value;</code> and <code>content: string(string-name);</code> rules.</p>
@@ -312,7 +323,7 @@ h3 { string-set: chapter-title content(); }
 
 
 
-<h2>Footnotes</h2>
+<h2 id="section-footnotes">Putting it Together: Footnotes (Clickable and Floating)</h2>
 
 <p>Footnotes that move to the bottom of a page and leave a little numbered link are described in <a href="http://www.w3.org/TR/css3-gcpm/#footnotes">Generated Content for Paged Media: Footnotes</a></p>
 <p>They can be implemented using the pseudoselector <code>:footnote-call</code> and the extension rules <code>x-tag-name:</code>, <code>x-attr:</code>, and <code>x-ensure-id:</code>.</p>
