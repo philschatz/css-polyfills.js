@@ -16,7 +16,7 @@ define [
 
 
   class ClassRenamer extends AbstractSelectorVisitor
-    autogenClasses: {}
+    constructor: (root, @autogenClasses={}) -> super(arguments...)
 
     # Do this after visiting the selector so the AbstractSelectorVisitor has time to squirrel away the original selector
     visitSelectorOut: (node, visitArgs) ->
@@ -69,7 +69,7 @@ define [
     isPreVisitor: false
     isReplacing: false
 
-    autogenClasses: {}
+    constructor: (root, @autogenClasses={}) -> super(arguments...)
 
     visitElement: (node, visitArgs) ->
       super(arguments...)
@@ -147,11 +147,11 @@ define [
 
 
   class CSSCanonicalizer
-    # Contains 'js-polyfill-autoclass-123 js-polyfill-autoclass-456' -> 'js-polyfill-autoclass-789'
-    newAutogenClassMapping: {}
-    newAutogenClasses: {}
 
     constructor: (@$root, @prevAutogenClasses) ->
+      @newAutogenClasses = {}
+      # Contains 'js-polyfill-autoclass-123 js-polyfill-autoclass-456' -> 'js-polyfill-autoclass-789'
+      @newAutogenClassMapping = {}
 
     run: () ->
       @$root.find('.js-polyfill-autoclass').each (i, node) =>

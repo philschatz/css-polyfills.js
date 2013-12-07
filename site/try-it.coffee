@@ -12,6 +12,7 @@ require [
   $cssEditor = $tryItModal.find('.css-editor')
   $htmlEditor = $tryItModal.find('.html-editor')
   $preview = $tryItModal.find('.preview')
+  $previewStyle = $tryItModal.find('style')
   $runReloadButton = $tryItModal.find('.run-reload')
 
   cssEditor = ace.edit($cssEditor[0])
@@ -43,8 +44,7 @@ require [
         if err
           alert("Looks like the CSS is not well-formed. Please correct it (maybe a missing semicolon?) Details: #{err}")
         else
-          console.log('CSS after the polyfills ran:')
-          console.log(newCSS)
+          $previewStyle.text(newCSS)
 
     else
       loadPreview()

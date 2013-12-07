@@ -341,6 +341,7 @@ h3 { string-set: chapter-title content(); }
   // Move it to the next `footnote-area` (page end)
   move-to: footnote-area;
   counter-increment: footnote;
+  display: block; // Plain CSS, nothing interesting
 }
 // The content that is left behind after the move-to
 .footnote:footnote-call {
@@ -362,8 +363,8 @@ h3 { string-set: chapter-title content(); }
   //counter-reset: footnote;
 }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
 
-  <div class="html-editor">&lt;div>Text with a &lt;div class="footnote">FOOTNOTE!&lt;/div>.&lt;/div>
-&lt;div>More paragraphs with &lt;div class="footnote">footnote text&lt;/div> &lt;div class="footnote">another footnote&lt;/div>.&lt;/div>
+  <div class="html-editor">&lt;p>Text with a &lt;span class="footnote">FOOTNOTE!&lt;/span>.&lt;/p>
+&lt;p>More paragraphs with &lt;span class="footnote">footnote text&lt;/span> &lt;span class="footnote">another footnote&lt;/span>.&lt;/p>
 &lt;hr/>
 &lt;h3>Footnotes Area (bottom of the page/chapter)&lt;/h3>
 &lt;div class="footnotes">&lt;/div>
@@ -415,6 +416,7 @@ h3 { string-set: chapter-title content(); }
                   </h3>
                 </div>
                 <div class="panel-body">
+                  <style></style>
                   <div class="preview"></div>
                 </div>
               </div>
