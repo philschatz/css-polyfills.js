@@ -89,10 +89,10 @@ define [
             # See if the pseudo element exists.
             # If not, add it to the DOM
             cls         = "js-polyfill-pseudo-#{pseudoName}"
-            $needsNew   = $context.not($context.has(" > .#{cls}"))
+            $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
             $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
             # Update the context to be current pseudo element
-            $context = $context.children(".#{cls}")
+            $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
 
           when ':after'
             op          = 'append'
@@ -100,10 +100,10 @@ define [
             # See if the pseudo element exists.
             # If not, add it to the DOM
             cls         = "js-polyfill-pseudo-#{pseudoName}"
-            $needsNew   = $context.not($context.has(" > .#{cls}"))
+            $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
             $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
             # Update the context to be current pseudo element
-            $context = $context.children(".#{cls}")
+            $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
 
           when ':outside'
             op          = 'wrap'
@@ -118,7 +118,16 @@ define [
             # Update the context to be current pseudo element
             $context = $context.parent()
 
-          else break # Skip to the next pseudoNode so we do not create freshClass's
+          else
+            op          = 'append'
+            pseudoName  = pseudoNode.value.replace(':', '')
+            # See if the pseudo element exists.
+            # If not, add it to the DOM
+            cls         = "js-polyfill-pseudo-#{pseudoName}"
+            $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
+            $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+            # Update the context to be current pseudo element
+            $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
 
       if frame.pseudoSelectors
         newClassName = freshClass()

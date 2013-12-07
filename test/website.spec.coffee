@@ -222,3 +222,50 @@ define ['cs!./simple'], (simple) ->
         [End of The Brain and Cranial Nerves]
       '''
       simple(css, html, expected)
+
+
+    it 'can be used to make footnotes', () ->
+      css = '''
+        .footnote {
+          // Ensure the footnote has an `id` (so we can link to it)
+          x-ensure-id: 'id';
+          // Move it to the next `footnote-area` (page end)
+          move-to: footnote-area;
+          counter-increment: footnote;
+        }
+        // The content that is left behind after the move-to
+        .footnote:footnote-call {
+          // Make the stub that is left behind a link...
+          x-tag-name: 'a';
+          // ... whose href points to the footnote.
+          x-attr: href '#' attr(id);
+          content: '[###]';
+          content: '[' target-counter(attr(href), footnote) ']';
+        }
+
+        //.footnote:footnote-marker,
+        .footnote:before {
+          content: counter(footnote) ': ';
+        }
+
+        .footnotes {
+          content: pending(footnote-area);
+          //counter-reset: footnote;
+        }
+      '''
+      html = '''
+        <div>Text with a <div class="footnote">FOOTNOTE!</div>.</div>
+        <div>More paragraphs with <div class="footnote">footnote text</div> <div class="footnote">another footnote</div>.</div>
+        <hr/>
+        <h3>Footnotes Area (bottom of the page/chapter)</h3>
+        <div class="footnotes"></div>
+      '''
+      expected = '''
+        Text with a [1].
+        More paragraphs with [2] [3].
+        Footnotes Area (bottom of the page/chapter)
+        1: FOOTNOTE!
+        2: footnote text
+        3: another footnote
+      '''
+      simple(css, html, expected)

@@ -39,7 +39,12 @@ require [
 
     if $runReloadButton.hasClass('trying-it')
       cssStyle = cssSession.getValue()
-      CSSPolyfill($preview, cssStyle)
+      CSSPolyfill $preview, cssStyle, (err, newCSS) ->
+        if err
+          alert("Looks like the CSS is not well-formed. Please correct it (maybe a missing semicolon?) Details: #{err}")
+        else
+          console.log('CSS after the polyfills ran:')
+          console.log(newCSS)
 
     else
       loadPreview()

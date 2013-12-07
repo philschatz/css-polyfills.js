@@ -10,6 +10,18 @@ define [
         bucketNameNode = bucketNameNode.eval(env)
         console.warn("ERROR: pending(): expects a Keyword") if bucketNameNode not instanceof less.tree.Keyword
         domAry = env.state.buckets[bucketNameNode.value]
+
+        # Check that all pseudo elements have been evaluated before this function actually runs
+        for $node in domAry
+          $pseudos = $node.find('.js-polyfill-pseudo')
+          if $pseudos.is(':not(.js-polyfill-evaluated)')
+            return null
+
+        # Keep the `:footnote-call` pseudoelement in the original content by inserting it after
+        for $node in domAry
+          $node.find('.js-polyfill-pseudo-footnote-call').insertAfter($node)
+
+
         # Empty the bucket so it can be refilled later
         delete env.state.buckets[bucketNameNode.value]
         return domAry or []
@@ -44,7 +56,6 @@ define [
         env.state.buckets[bucketName].push(env.helpers.$context)
 
         # DO NOT DETACH because move-to can be called more than once on an element.... env.helpers.$context.detach()
-
 
 
   class DisplayNone
@@ -158,9 +169,25 @@ define [
       'attr': (env, attrNameNode) ->
         attrNameNode = attrNameNode.eval(env)
         console.warn("ERROR: attr(): expects a Keyword") if attrNameNode not instanceof less.tree.Keyword
-        val = env.helpers.$context.attr(attrNameNode.value) or ''
+        $context = env.helpers.$context
+        val = $context.attr(attrNameNode.value)
         # Convert to a number if the attribute is a number (useful for counter tests and setting a counter)
-        val = parseInt(val) if not isNaN(val)
+        val = parseInt(val) if val and not isNaN(val)
+        if not val
+          # If it is a pseudoelement try to move up/down(in the case of :outside)
+          # Move up until the current node is not a pseudo-element
+          if $context.is('.js-polyfill-pseudo')
+            if $context.is('.js-polyfill-pseudo-outside')
+              # TODO: The :outside tags might be nested so we may need to search for the first non-pseudo child
+              $context = $context.find(':not(.js-polyfill-pseudo)').first()
+            else
+              $context = $context.parent(':not(.js-polyfill-pseudo)')
+
+            # Copy/Pasta from above
+            val = $context.attr(attrNameNode.value)
+            # Convert to a number if the attribute is a number (useful for counter tests and setting a counter)
+            val = parseInt(val) if val and not isNaN(val)
+
         return val
       'counter': (env, counterNameNode, counterType=null) ->
         counterNameNode = counterNameNode.eval(env)
@@ -171,6 +198,8 @@ define [
         console.warn("ERROR: target-counter(): expects a Keyword") if counterNameNode not instanceof less.tree.Keyword
         href = targetIdNode.eval(env).value
         counterName = counterNameNode.value
+        # Keep waiting if a valid href has not shown up yet (could still be generating the attribute using x-attr)
+        return null if not href or href[0] != '#' or href.length < 2
         # Mark the target as interesting if it is not already
         if not env.helpers.markInterestingByHref(href)
           # It has already been marked

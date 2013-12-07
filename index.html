@@ -37,9 +37,13 @@ a.xref {
 // Wrap Elements just for styling purposes
 .example:outside        { border: 1px solid red; }
 .example:outside:before { content: 'Exercise: '; }
+
 // Set a string ... and then use it
 h1 { string-set: chapter-title content(); }
-.chap-end { content: '[End of ' string(chapter-title) ']'; }</code></pre>
+.chap-end { content: '[End of ' string(chapter-title) ']'; }
+
+// Floating, clickable Footnotes
+.footnote:footnote-call { x-tag-name: 'a'; }</code></pre>
 
       <div><a href="./test/" target="_window" class="btn btn-xs btn-default pull-right"><i class="fa fa-play"></i> run unit tests/coverage</a></div>
 
@@ -308,113 +312,60 @@ h3 { string-set: chapter-title content(); }
 
 
 
+<h2>Footnotes</h2>
 
+<p>Footnotes that move to the bottom of a page and leave a little numbered link are described in <a href="http://www.w3.org/TR/css3-gcpm/#footnotes">Generated Content for Paged Media: Footnotes</a></p>
+<p>They can be implemented using the pseudoselector <code>:footnote-call</code> and the extension rules <code>x-tag-name:</code>, <code>x-attr:</code>, and <code>x-ensure-id:</code>.</p>
 
+<p>Here is an example implementation of footnotes.</p>
 
+<div class="row try-it-example">
 
-
-
-
-
-
-
-
-<h2 id="kitchen-sink">The Kitchen Sink</h2>
-
-
-
-<div class="try-it-example kitchen-sink">
-<div class="row">
-
-  <div class="col-md-6"><pre class="css-editor"><code class="css">// You can replace the content of any element (not just pseudo elements)
-
-.contents-simple { content: 'AFTER'; }
-.contents-attr { content: attr(data-after); }
-
-// The content of ::before/after elements will gracefully fallback
-h1::before {
-  content: 'Simple';
-  content: 'Unparseable because of' invalid-magic() ' function';
-  content: 'Chapter ' counter(chapter-counter) ': ';
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">.footnote {
+  // Ensure the footnote has an `id` (so we can link to it)
+  x-ensure-id: 'id';
+  // Move it to the next `footnote-area` (page end)
+  move-to: footnote-area;
+  counter-increment: footnote;
+}
+// The content that is left behind after the move-to
+.footnote:footnote-call {
+  // Make the stub that is left behind a link...
+  x-tag-name: 'a';
+  // ... whose href points to the footnote.
+  x-attr: href '#' attr(id);
+  content: '[###]';
+  content: '[' target-counter(attr(href), footnote) ']';
 }
 
-// Move example
-.definition { move-to: glossary-bucket; }
-.chapter-glossary { content: x-sort(pending(glossary-bucket), '.sort-by'); }
-
-// Counter examples
-h1 {
-  counter-reset: term-counter 0;
-  counter-increment: chapter-counter 1;
-}
-.definition { counter-increment: term-counter 1; }
-.definition::before { content: '[t' counter(term-counter) ']'; }
-
-
-.target-chapter {
-  //content: 'See Chapter ' target-counter(attr(href), chapter-counter);
-  content: 'See Chapter ' target-counter(attr(href), chapter-counter) ':' target-text(attr(href), content());
+//.footnote:footnote-marker,
+.footnote:before {
+  content: counter(footnote) ': ';
 }
 
+.footnotes {
+  content: pending(footnote-area);
+  //counter-reset: footnote;
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
 
-//.footnote::before { content: counter(footnote-counter); }
-//.footnote::footnote-call { content: counter(footnote-counter); }
-//.footnote { move-to: footnote-bucket; }
-
-//.footnotes-area { content: pending(footnote-bucket); }
-</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
-
-<div class="html-editor">
-&lt;div>&lt;span class="contents-simple">before&lt;/span> and using an attribute: &lt;span class="contents-attr" data-after="Aloha!">Hello!&lt;/span>&lt;/div>
-
-    &lt;h1 id="chapter-first">Kinetics&lt;/h1>
-
-&lt;p>Some chapter content goes here with a &lt;span class="footnote">Footnote text&lt;/span>&lt;/p>
-&lt;div class="definition">
-  &lt;b>term2&lt;/b> is defined as &lt;b>force&lt;/b> times distance over time &lt;span class="sort-by">3&lt;/span>
-&lt;/div>
-
-&lt;h2>Vectors and Scalars&lt;/h2>
-&lt;p>Some chapter content goes here&lt;/p>
-&lt;a href="#chapter-first" class="target-chapter">Link&lt;/a>
-&lt;div class="definition">
-  &lt;b>term3&lt;/b> is defined as mass times acceleration &lt;span class="sort-by">1&lt;/span>
-&lt;/div>
-
-&lt;div class="definition">
-  &lt;b>term1&lt;/b> is defined as &lt;b>force&lt;/b> times distance over time &lt;span class="sort-by">2&lt;/span>
-&lt;/div>
-
-&lt;p>Some chapter content goes here&lt;/p>
-
-&lt;h2>Glossary&lt;/h2>
-&lt;section class="chapter-glossary">&lt;/section>
-
-&lt;h2>Footnotes Area&lt;/h2>
-&lt;section class="footnotes-area">&lt;/section>
-
+  <div class="html-editor">&lt;div>Text with a &lt;div class="footnote">FOOTNOTE!&lt;/div>.&lt;/div>
+&lt;div>More paragraphs with &lt;div class="footnote">footnote text&lt;/div> &lt;div class="footnote">another footnote&lt;/div>.&lt;/div>
 &lt;hr/>
-
-&lt;h1 id="chapter-second">Work, Energy, and Energy Resources&lt;/h1>
-&lt;p>Some chapter content goes here&lt;/p>
-
-&lt;div class="definition">
-  &lt;b>work&lt;/b> is defined as &lt;b>force&lt;/b> times distance
-&lt;/div>
-
-&lt;h2>Glossary&lt;/h2>
-&lt;section class="chapter-glossary">&lt;/section>
-
-
+&lt;h3>Footnotes Area (bottom of the page/chapter)&lt;/h3>
+&lt;div class="footnotes">&lt;/div>
 </div>
+
 
 </div><!-- /row -->
 
-</div><!-- /try-it-example -->
 
 
 </div><!-- /#examples.container -->
 </div><!-- /#examples -->
+
+
+
 
 
 <div id="try-it-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="tryItLabel" aria-hidden="true">

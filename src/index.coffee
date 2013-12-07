@@ -3,8 +3,9 @@ define [
   'jquery'
   'cs!polyfill-path/less-converters'
   'cs!polyfill-path/plugins'
+  'cs!polyfill-path/extras'
   'cs!polyfill-path/fixed-point-runner'
-], (_, $, LESS_CONVERTERS, PLUGINS, FixedPointRunner) ->
+], (_, $, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner) ->
 
 
   ClassRenamer      = LESS_CONVERTERS.ClassRenamer
@@ -17,13 +18,15 @@ define [
   TargetText    = PLUGINS.TargetText
   StringSet     = PLUGINS.StringSet
 
+  ElementExtras = EXTRAS.ElementExtras
+
 
   CSSPolyfill = ($root, cssStyle, cb=null) ->
 
     p1 = new less.Parser()
     p1.parse cssStyle, (err, lessTree) ->
 
-      return cb(err, value) if err
+      return cb(err, lessTree) if err
 
       # Run the plugins in multiple phases because move-to manipulates the DOM
       # and jQuery.data() disappears when the element detaches from the DOM
@@ -68,22 +71,18 @@ define [
       autogenClasses = canonicalizer.newAutogenClasses
 
 
-
-      console.log 'After all the CSS transforms:'
-      console.log autogenClassesToString(autogenClasses)
-
-      runFixedPoint [new MoveTo()]
-
       runFixedPoint [
+        new MoveTo()
         new DisplayNone()
         new TargetCounter()
         new TargetText()
         new StringSet()
+        new ElementExtras()
       ]
 
 
       # return the converted CSS
-      cb?(null, val.toCSS({}))
+      cb?(null, autogenClassesToString(autogenClasses))
 
 
   return CSSPolyfill

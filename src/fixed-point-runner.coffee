@@ -85,10 +85,15 @@ define [
             id = href.substring(1)
             wasAlreadyMarked = !! @squirreledEnv[id]
             if not wasAlreadyMarked
-              somethingChanged = true
               # Mark that this node will need to squirrel its env
-              @$root.find("##{id}").addClass('js-polyfill-interesting js-polyfill-target')
+              $target = @$root.find("##{id}")
+              if $target[0]
+                # Only flag if the target exists
+                somethingChanged = true
+                $target.addClass('js-polyfill-interesting js-polyfill-target')
             return !wasAlreadyMarked
+          didSomthingNonIdempotent: (msg) ->
+            somethingChanged = true
 
       for node in $interesting
         $node = $(node)
@@ -136,7 +141,7 @@ define [
           # Keep the helper functions (targetText uses them) but not the state
           targetEnv =
             helpers: _.clone(env.helpers)
-            state: JSON.parse(JSON.stringify(env.state)) # Perform a deep clone
+            state: JSON.parse(JSON.stringify(_.omit(env.state, 'buckets'))) # Perform a deep clone
           targetEnv.helpers.$context = $node
           @squirreledEnv[$node.attr('id')] = targetEnv
 
@@ -152,7 +157,7 @@ define [
           # If ret is null or undefined then ('' is OK) mark that is was not evaluated
           # by returning the original less.tree.Call
           if not ret?
-            return new less.tree.Call(funcName, arguments)
+            return new less.tree.Call(funcName, _.toArray(arguments))
           else if ret instanceof Array
             return new ArrayTreeNode(ret)
           else if _.isString(ret)
@@ -179,7 +184,7 @@ define [
         'js-polyfill-target'
       ]
       # add '.' and ',' for the find, but a space for the classes to remove
-      @$root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
+      # @$root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
 
     run: () ->
       @setUp()
