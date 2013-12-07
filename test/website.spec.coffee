@@ -3,9 +3,6 @@ define ['cs!./simple'], (simple) ->
   describe 'Website Examples', () ->
     it 'moves content', () ->
       css = '''
-        // You can move content in the DOM
-        // See http://www.w3.org/TR/css3-content/#moving
-
         // This element will be moved into the glossary-bucket...
         .def-a { move-to: bucket-a; }
         .def-b { move-to: bucket-b; }
@@ -42,15 +39,15 @@ define ['cs!./simple'], (simple) ->
 
     it 'does simple counters, target-counter, and target-text', () ->
       css = '''
-        // You can look up text in another element
-        // See http://www.w3.org/TR/css3-gcpm/#cross-references
-
         // Just set a counter so we can look it up later
         h3 { counter-increment: chap; }
         h3:before { content: 'Ch ' counter(chap) ': '; }
 
-        .xref { content: 'See ' target-text(attr(href), content(contents)); }
-
+        // Look up the text on the target
+        .xref {
+          content: 'See ' target-text(attr(href), content(contents));
+        }
+        // Look up the counter on the target
         .xref-counter {
           content: 'See Chapter ' target-counter(attr(href), chap);
         }
@@ -154,43 +151,48 @@ define ['cs!./simple'], (simple) ->
 
     it 'supports nested :before, :after, and :outside selectors', () ->
       css = '''
-        h3 { counter-increment: chap; }
-        // h3:before { content: 'Ch ' counter(chap) ': '; }
-        h3:before:before  { content: 'Ch '; }
-        h3:before         { content: counter(chap); }
-        h3:before:after   { content: ': '; }
-        h3:outside:before { content: '[chapter starts here]'; }
+        h3:before { content: 'Ch ' counter(chap) ': '; }
+        // The previous rule is valid CSS2 and creates the following DOM:
+        // [ [Ch 2:] Chapter Title]
+        // Note: There are only 2 elements we can style
 
-        // The following is the same as before
-        .xref { content: 'See ' target-text(attr(href), content(contents)); }
-        .xref-counter {
-          content: 'See Chapter ' target-counter(attr(href), chap);
-        }
+        h3                { counter-increment: chap; }
+        h3:before:before  { content: '[Ch ]'; }
+        h3:before         { content: '[' counter(chap) ']'; }
+        h3:before:after   { content: '[: ]'; }
+        h3:outside:before { content: '(chapter starts here)'; }
+
+        // Instead, the previous styles create the following
+        // (providing 7 elements that can be styled):
+        // [
+        //   [Chapter starts here]
+        //   [
+        //     [ [Ch] [2] [: ] ]
+        //     Chapter Title
+        //   ]
+        // ]
       '''
       html = '''
         <h3 id="ch1">The Appendicular Skeleton</h3>
-        <p>Here is a reference to another chapter:
-          <a href="#ch2" class="xref">Link</a>
-        </p>
+        <p>Lorem ipsum lorem ipsum.</p>
+        <p>Lorem ipsum lorem ipsum.</p>
 
         <h3 id="ch2">The Brain and Cranial Nerves</h3>
-        <p>Here is a reference to another chapter:
-          <a href="#ch1" class="xref">Link</a>
-        </p>
-        <p>A reference using target-counter:
-          <a href="#ch1" class="xref-counter">Link</a>
-        </p>
+        <p>Lorem ipsum lorem ipsum.</p>
+        <p>Lorem ipsum lorem ipsum.</p>
       '''
       expected = '''
-        [chapter starts here]
-        Ch 1: The Appendicular Skeleton
-        Here is a reference to another chapter: See The Brain and Cranial Nerves
+        (chapter starts here)
+        [Ch ][1][: ]The Appendicular Skeleton
+        Lorem ipsum lorem ipsum.
 
-        [chapter starts here]
-        Ch 2: The Brain and Cranial Nerves
-        Here is a reference to another chapter: See The Appendicular Skeleton
+        Lorem ipsum lorem ipsum.
 
-        A reference using target-counter: See Chapter 1
+        (chapter starts here)
+        [Ch ][2][: ]The Brain and Cranial Nerves
+        Lorem ipsum lorem ipsum.
+
+        Lorem ipsum lorem ipsum.
       '''
       simple(css, html, expected)
 

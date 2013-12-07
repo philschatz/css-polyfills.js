@@ -82,10 +82,7 @@ h1 { string-set: chapter-title content(); }
 <div class="row try-it-example">
 
   <div class="col-md-4">
-    <pre class="css-editor"><code class="css">// You can move content in the DOM
-// See http://www.w3.org/TR/css3-content/#moving
-
-// This element will be moved into the glossary-bucket...
+    <pre class="css-editor"><code class="css">// This element will be moved into the glossary-bucket...
 .def-a { move-to: bucket-a; }
 .def-b { move-to: bucket-b; }
 
@@ -119,15 +116,15 @@ h1 { string-set: chapter-title content(); }
 <div class="row try-it-example">
 
   <div class="col-md-4">
-    <pre class="css-editor"><code class="css">// You can look up text in another element
-// See http://www.w3.org/TR/css3-gcpm/#cross-references
-
-// Just set a counter so we can look it up later
+    <pre class="css-editor"><code class="css">// Just set a counter so we can look it up later
 h3 { counter-increment: chap; }
 h3:before { content: 'Ch ' counter(chap) ': '; }
 
-.xref { content: 'See ' target-text(attr(href), content(contents)); }
-
+// Look up the text on the target
+.xref {
+  content: 'See ' target-text(attr(href), content(contents));
+}
+// Look up the counter on the target
 .xref-counter {
   content: 'See Chapter ' target-counter(attr(href), chap);
 }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
@@ -159,31 +156,36 @@ h3:before { content: 'Ch ' counter(chap) ': '; }
 <div class="row try-it-example">
 
   <div class="col-md-4">
-    <pre class="css-editor"><code class="css">h3 { counter-increment: chap; }
-// h3:before { content: 'Ch ' counter(chap) ': '; }
-h3:before:before  { content: 'Ch '; }
-h3:before         { content: counter(chap); }
-h3:before:after   { content: ': '; }
-h3:outside:before { content: '[chapter starts here]'; }
+    <pre class="css-editor"><code class="css">h3:before { content: 'Ch ' counter(chap) ': '; }
+// The previous rule is valid CSS2 and creates the following DOM:
+// [ [Ch 2:] Chapter Title]
+// Note: There are only 2 elements we can style
 
-// The following is the same as before
-.xref { content: 'See ' target-text(attr(href), content(contents)); }
-.xref-counter {
-  content: 'See Chapter ' target-counter(attr(href), chap);
-}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+h3                { counter-increment: chap; }
+h3:before:before  { content: '[Ch ]'; }
+h3:before         { content: '[' counter(chap) ']'; }
+h3:before:after   { content: '[: ]'; }
+h3:outside:before { content: '(chapter starts here)'; }
+
+// Instead, the previous styles create the following
+// (providing 7 elements that can be styled):
+// [
+//   [Chapter starts here]
+//   [
+//     [ [Ch] [2] [: ] ]
+//     Chapter Title
+//   ]
+// ]
+</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
 
   <div class="html-editor">&lt;h3 id="ch1">The Appendicular Skeleton&lt;/h3>
-&lt;p>Here is a reference to another chapter:
-  &lt;a href="#ch2" class="xref">Link&lt;/a>
-&lt;/p>
+&lt;p>Lorem ipsum lorem ipsum.&lt;/p>
+&lt;p>Lorem ipsum lorem ipsum.&lt;/p>
 
 &lt;h3 id="ch2">The Brain and Cranial Nerves&lt;/h3>
-&lt;p>Here is a reference to another chapter:
-  &lt;a href="#ch1" class="xref">Link&lt;/a>
-&lt;/p>
-&lt;p>A reference using target-counter:
-  &lt;a href="#ch1" class="xref-counter">Link&lt;/a>
-&lt;/p></div>
+&lt;p>Lorem ipsum lorem ipsum.&lt;/p>
+&lt;p>Lorem ipsum lorem ipsum.&lt;/p>
+</div>
 
 
 </div><!-- /row -->
