@@ -331,7 +331,7 @@ toRoman = (num) ->
   ]
   if not (0 < num < 5000)
     console.warn 'ERROR: number out of range (must be 1..4999)'
-    return num
+    return "#{num}"
 
   result = ''
   for [numeral, integer] in romanNumeralMap
@@ -352,16 +352,20 @@ numberingStyle = (num=0, style='decimal') ->
       toRoman(num)
     when 'lower-latin'
       if not (1 <= num <= 26)
-        console.error 'ERROR: number out of range (must be 1...26)'
-      String.fromCharCode(num + 96)
+        console.warn 'ERROR: number out of range (must be 1...26)'
+        num
+      else
+        String.fromCharCode(num + 96)
     when 'upper-latin'
       if not (1 <= num <= 26)
-        console.error 'ERROR: number out of range (must be 1...26)'
-      String.fromCharCode(num + 64)
+        console.warn 'ERROR: number out of range (must be 1...26)'
+        num
+      else
+        String.fromCharCode(num + 64)
     when 'decimal'
       num
     else
-      console.error "ERROR: Counter numbering not supported for list type #{style}. Using decimal."
+      console.warn "ERROR: Counter numbering not supported for list type #{style}. Using decimal."
       num
 
 
@@ -370,7 +374,10 @@ class TargetCounter
     'attr': (env, attrNameNode) ->
       attrNameNode = attrNameNode.eval(env)
       console.warn("ERROR: attr(): expects a Keyword") if attrNameNode not instanceof less.tree.Keyword
-      return env.helpers.$context.attr(attrNameNode.value) or ''
+      val = env.helpers.$context.attr(attrNameNode.value) or ''
+      # Convert to a number if the attribute is a number (useful for counter tests and setting a counter)
+      val = parseInt(val) if not isNaN(val)
+      return val
     'counter': (env, counterNameNode, counterType=null) ->
       counterNameNode = counterNameNode.eval(env)
       console.warn("ERROR: counter(): expects a Keyword") if counterNameNode not instanceof less.tree.Keyword
