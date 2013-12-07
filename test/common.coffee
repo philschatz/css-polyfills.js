@@ -1,4 +1,4 @@
-define ['underscore', 'jquery', 'chai', 'cs!css-polyfill'], (_, $, chai, CSSPolyfill) ->
+define ['underscore', 'jquery', 'chai', 'cs!polyfill-path/index'], (_, $, chai, CSSPolyfill) ->
 
   assert = chai.assert
   expect = chai.expect

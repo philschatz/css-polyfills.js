@@ -26,15 +26,15 @@
 
 // Load the config
 require.config({
-  baseUrl: '../',
   paths: {
-    'css-polyfill':  'src/css-polyfill',
-    'coffee-script': 'bower_components/coffee-script/extras/coffee-script',
-    'underscore':    'bower_components/underscore/underscore',
-    'jquery':        'bower_components/jquery/jquery',
-    'chai':          'bower_components/chai/chai',
+    'css-polyfill':  '../src/css-polyfill',
+    'polyfill-path': '../src',
+    'coffee-script': '../bower_components/coffee-script/extras/coffee-script',
+    'underscore':    '../bower_components/underscore/underscore',
+    'jquery':        '../bower_components/jquery/jquery',
+    'chai':          '../bower_components/chai/chai',
     // 'mocha-blanket': 'node_modules/grunt-blanket-mocha/support/mocha-blanket'
-    'mocha-blanket': 'bower_components/blanket/src/adapters/mocha-blanket',
+    'mocha-blanket': '../bower_components/blanket/src/adapters/mocha-blanket',
   },
   shim: {
     'underscore': {
@@ -46,7 +46,7 @@ require.config({
 
 realMochaRun = mocha.run;
 mocha.setup('bdd');
-require(['cs!test/common'], function(common) {
+require(['cs!common'], function(common) {
 
   common();
 

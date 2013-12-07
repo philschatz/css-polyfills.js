@@ -1,6 +1,6 @@
 require [
   'jquery'
-  'cs!src/css-polyfill'
+  'cs!polyfill-path/index'
   'ace/ace'
   'ace/mode/less'
   'ace/mode/html'
