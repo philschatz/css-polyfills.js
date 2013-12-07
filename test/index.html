@@ -9,23 +9,72 @@
 
 <div id="mocha"></div>
 
-<script src="../bower_components/underscore/underscore.js"></script>
-<script src="../bower_components/jquery/jquery.js"></script>
-<script src="../bower_components/coffee-script/extras/coffee-script.js"></script>
+<script src="../node_modules/less/test/browser/less.js"></script>
 <script src="../node_modules/mocha/mocha.js"></script>
-<script src="../node_modules/chai/chai.js"></script>
-<!-- <script src="../bower_components/blanket/dist/mocha/blanket_mocha.js"></script> -->
 <!-- <script type="text/javascript" src="../node_modules/grunt-blanket-mocha/support/mocha-blanket.js"></script> -->
+
+
+
+<script src="../bower_components/requirejs/require.js"></script>
+
+<script data-cover-only="src/" src="../bower_components/blanket/dist/mocha/blanket_mocha.js"></script>
+<script src="../bower_components/blanket/src/loaders/blanket_cs.js"></script>
+<script src="../node_modules/grunt-blanket-mocha/support/mocha-blanket"></script>
+
 <script>
-  mocha.setup('bdd');
+//(function() {
+
+// Load the config
+require.config({
+  baseUrl: '../',
+  paths: {
+    'css-polyfill':  'src/css-polyfill',
+    'coffee-script': 'bower_components/coffee-script/extras/coffee-script',
+    'underscore':    'bower_components/underscore/underscore',
+    'jquery':        'bower_components/jquery/jquery',
+    'chai':          'bower_components/chai/chai',
+    // 'mocha-blanket': 'node_modules/grunt-blanket-mocha/support/mocha-blanket'
+    'mocha-blanket': 'bower_components/blanket/src/adapters/mocha-blanket',
+  },
+  shim: {
+    'underscore': {
+      exports: '_'
+    },
+    'css-polyfill': {
+      exports: 'CSSPolyfill'
+    }
+  },
+
+});
+
+realMochaRun = mocha.run;
+mocha.setup('bdd');
+require(['cs!test/common'], function(common) {
+
+  common();
+
+  // from http://www.geekdave.com/2013/08/02/automated-code-coverage-enforcement-for-mocha-using-grunt-and-blanket/
+  if(this.PHANTOMJS) {
+    this.blanket.options('reporter', '../node_modules/grunt-blanket-mocha/support/grunt-reporter.js');
+  }
+
+  mocha.checkLeaks();
+  mocha.globals(['jQuery']);
+
+  // Needs to run once this file is loaded
+  mocha.run();
+  realMochaRun();
+});
+
+
+//})();
 </script>
 
-<script src="../node_modules/less/test/browser/less.js"></script>
-<!-- <script data-cover src="../css-polyfill.js"></script> -->
-<script type="text/coffeescript" src="../css-polyfill.coffee"></script>
 
-<script type="text/coffeescript" src="common.coffee"></script>
-<script type="text/coffeescript" src="browser.coffee"></script>
+
+
+
+
 
 
 </body>
