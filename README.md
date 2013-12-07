@@ -6,6 +6,15 @@ This project implements many of the CSS selectors and rules defined in [CSS3 Gen
 
 # Features
 
+Some of the features are outlined below. The project has support for:
+
+- moving content using `move-to:`
+- constructing stylable DOM elements using nestable `:before`, `:after`, and `:outside` selectors
+- looking up target counters and text using `target-counter(...)` and `target-text(...)`
+- setting strings using `string-set:`
+- manipulating attributes on elements using `x-tag-name:`, `x-attr:`, and `x-ensure-id:`
+- **Clickable, Floating Footnotes** using several of the plugins above
+
 ## Moving Content
 
 Moving content is accomplished by `move-to: bucket-name;` and `content: pending(bucket-name);` as defined in [CSS3 Generated and Replaced Content Module](http://www.w3.org/TR/css3-content/)
@@ -66,6 +75,33 @@ Example:
     h3 { string-set: chapter-title content(); }
     // ... And then use it!
     .chap-end { content: '[End of ' string(chapter-title) ']'; }
+
+## Clickable Footnotes
+
+Using several of these extensions it is relatively straightforward to describe footnotes that
+move to the bottom of a page and leave a clickable link in their place (as defined in [CSS3 Generated Content for Paged Media Module](http://www.w3.org/TR/css3-gcpm/) ).
+
+    .footnote {
+      // Ensure the footnote has an `id` (so we can link to it)
+      x-ensure-id: 'id';
+      // Move it to the next `footnote-area` (page end)
+      move-to: footnote-area;
+      counter-increment: footnote;
+    }
+    // The content that is left behind after the move-to
+    .footnote:footnote-call {
+      // Make the stub that is left behind a link...
+      x-tag-name: 'a';
+      // ... whose href points to the footnote.
+      x-attr: href '#' attr(id);
+      content: '[###]';
+      content: '[' target-counter(attr(href), footnote) ']';
+    }
+    // Place a number next to the actual footnote
+    .footnote:before { content: counter(footnote) ': '; }
+
+    // Define a location where the footnotes will be collected
+    .footnotes { content: pending(footnote-area); }
 
 ## Custom Extensions
 
