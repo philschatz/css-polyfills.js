@@ -88,11 +88,18 @@ h1 { string-set: chapter-title content(); }
 
 // ... and dumped out into this area in the order added.
 .area-a { content: pending(bucket-a); }
-.area-b { content: pending(bucket-b); }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+.area-b { content: pending(bucket-b); }
 
-  <div class="html-editor">&lt;div class="def-a">This will be in the 1st Area A&lt;/div>
-&lt;div class="def-b">This will be in Area B&lt;/div>
-&lt;div class="def-a">This will also be in the 1st Area A&lt;/div>
+// Also, styling occurs **before** elements are moved so ...
+.before div { background-color: lightgreen; }
+// ... when this CSS is applied **nothing** should be red.
+.area-a .def-a { background-color: red; }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;div class="before">
+  &lt;div class="def-a">This will be in the 1st Area A&lt;/div>
+  &lt;div class="def-b">This will be in Area B&lt;/div>
+  &lt;div class="def-a">This will also be in the 1st Area A&lt;/div>
+&lt;/div>
 
 &lt;h3>Area A&lt;/h3>
 &lt;div class="area-a">&lt;/div>

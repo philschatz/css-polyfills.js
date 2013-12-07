@@ -10,11 +10,18 @@ define ['cs!./simple'], (simple) ->
         // ... and dumped out into this area in the order added.
         .area-a { content: pending(bucket-a); }
         .area-b { content: pending(bucket-b); }
+
+        // Also, styling occurs **before** elements are moved so ...
+        .before div { background-color: lightgreen; }
+        // ... when this CSS is applied **nothing** should be red.
+        .area-a .def-a { background-color: red; }
       '''
       html = '''
-        <div class="def-a">This will be in the 1st Area A</div>
-        <div class="def-b">This will be in Area B</div>
-        <div class="def-a">This will also be in the 1st Area A</div>
+        <div class="before">
+          <div class="def-a">This will be in the 1st Area A</div>
+          <div class="def-b">This will be in Area B</div>
+          <div class="def-a">This will also be in the 1st Area A</div>
+        </div>
 
         <h3>Area A</h3>
         <div class="area-a"></div>
