@@ -5,7 +5,7 @@
 </head>
 
 <body>
-<p>This is a test page. Mocha tests should run below.</p>
+<p>This is a test page. Mocha tests should run below. You may need to refresh a couple of times because BlanketJS (code coverage) is a little flaky.</p>
 
 <div id="mocha"></div>
 
@@ -46,9 +46,7 @@ require.config({
 
 realMochaRun = mocha.run;
 mocha.setup('bdd');
-require(['cs!common'], function(common) {
-
-  common();
+require(['cs!all-tests'], function(allTests) {
 
   // from http://www.geekdave.com/2013/08/02/automated-code-coverage-enforcement-for-mocha-using-grunt-and-blanket/
   if(this.PHANTOMJS) {
@@ -66,11 +64,6 @@ require(['cs!common'], function(common) {
 
 //})();
 </script>
-
-
-
-
-
 
 
 
