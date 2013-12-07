@@ -1,9 +1,10 @@
 require [
   'jquery'
+  'cs!src/css-polyfill'
   'ace/ace'
   'ace/mode/less'
   'ace/mode/html'
-], ($, ace, CSSMode, HTMLMode) ->
+], ($, CSSPolyfill, ace, CSSMode, HTMLMode) ->
 
   # initModal
   $tryItModal = $('#try-it-modal')
@@ -38,7 +39,7 @@ require [
 
     if $runReloadButton.hasClass('trying-it')
       cssStyle = cssSession.getValue()
-      window.CSSPolyfill($preview, cssStyle)
+      CSSPolyfill($preview, cssStyle)
 
     else
       loadPreview()

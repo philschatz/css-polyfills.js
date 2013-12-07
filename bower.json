@@ -25,6 +25,7 @@
     "bootstrap": "~3.0.2",
     "font-awesome": "~4.0.3",
     "coffee-script": "~1.6.3",
-    "blanket": "#development"
+    "blanket": "#development",
+    "require-cs": "~0.4.4"
   }
 }

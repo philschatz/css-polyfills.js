@@ -17,7 +17,7 @@ define ['underscore', 'jquery', 'chai', 'cs!css-polyfill'], (_, $, chai, CSSPoly
       $content = $('<div></div>').appendTo('body')
       $content.append(html)
 
-      window.CSSPolyfill($content, css)
+      CSSPolyfill($content, css)
       $content.remove()
       strExpect(expected, $content.text())
 
