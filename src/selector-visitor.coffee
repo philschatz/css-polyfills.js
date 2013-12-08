@@ -1,4 +1,5 @@
-define [], () ->
+# Add `:nth-of-type()` to jQuery
+define ['jquery', 'polyfill-path/jquery-selectors'], () ->
 
   class LessVisitor
     constructor: (@$root) ->
@@ -22,6 +23,15 @@ define [], () ->
     # visitValue: (node, visitArgs) ->
 
 
+  PSEUDO_CLASSES = [
+    'before'
+    'after'
+    'outside'
+    'footnote-call'
+    'footnote-marker'
+  ]
+
+
   return class AbstractSelectorVisitor extends LessVisitor
 
     operateOnElements: (frame, $els) -> console.error('BUG: Need to implement this method')
@@ -35,13 +45,20 @@ define [], () ->
       # Build up a selector
       # Note if it ends in ::before or ::after
 
+    visitParen: (node, visitArgs) ->
+      frame = @peek()
+      frame.insideParen = true
+
+    visitParenOut: (node, visitArgs) ->
+      frame = @peek()
+      frame.insideParen = true
+
     visitElement: (node, visitArgs) ->
       frame = @peek()
-      if /^:/.test(node.value)
+      if /^:/.test(node.value) and (node.value.replace(':', '').replace(':', '') in PSEUDO_CLASSES)
         frame.hadPseudoSelectors = true
-      else
-        frame.selectorAry.push(node.combinator.value)
-        frame.selectorAry.push(node.value)
+      else if not frame.insideParen
+        frame.selectorAry.push(node.toCSS({}))
 
     visitRulesetOut: (node) ->
       frame = @pop()
@@ -49,6 +66,8 @@ define [], () ->
       pseudoName = frame.pseudoName
       selectorAry = frame.selectorAry
 
-      selector = selectorAry.join(' ')
+      selector = selectorAry.join('')
+      console.log("DEBUG: Searching for {#{selector}}")
       $els = @$root.find(selector)
+      console.log("DEBUG: Found #{$els.length}")
       @operateOnElements(frame, $els, node)

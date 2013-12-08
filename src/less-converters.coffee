@@ -4,6 +4,14 @@ define [
   'cs!polyfill-path/selector-visitor'
 ], (_, $, AbstractSelectorVisitor) ->
 
+  PSEUDO_CLASSES = [
+    'before'
+    'after'
+    'outside'
+    'footnote-call'
+    'footnote-marker'
+  ]
+
   freshClassIdCounter = 0
   freshClass = () ->
     return "js-polyfill-autoclass-#{freshClassIdCounter++}"
@@ -26,7 +34,7 @@ define [
       newElements = []
       oldElements = []
       _.each node.elements, (el) ->
-        if /^:/.test(el.value)
+        if /^:/.test(el.value) and (el.value.replace(':', '').replace(':', '') in PSEUDO_CLASSES)
           frame.hasPseudo = true
           newElements.push(el)
         else if newElements.length > 2
@@ -82,28 +90,23 @@ define [
     operateOnElements: (frame, $els, node) ->
       $context = $els
       for pseudoNode in frame.pseudoSelectors or []
-        switch pseudoNode.value
-          when ':before'
-            op          = 'prepend'
-            pseudoName  = 'before'
-            # See if the pseudo element exists.
-            # If not, add it to the DOM
-            cls         = "js-polyfill-pseudo-#{pseudoName}"
-            $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
-            $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
-            # Update the context to be current pseudo element
-            $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
+        pseudoName = pseudoNode.value.replace?('::', ':') # Put a '?' because it might be a less.tree.Paren
 
-          when ':after'
-            op          = 'append'
-            pseudoName  = 'after'
-            # See if the pseudo element exists.
-            # If not, add it to the DOM
-            cls         = "js-polyfill-pseudo-#{pseudoName}"
-            $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
-            $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
-            # Update the context to be current pseudo element
-            $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
+        simpleExpand = (op, pseudoName) ->
+          # See if the pseudo element exists.
+          # If not, add it to the DOM
+          cls         = "js-polyfill-pseudo-#{pseudoName}"
+          $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
+          $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+          # Update the context to be current pseudo element
+          $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
+
+
+        switch pseudoName
+          when ':before'          then simpleExpand('prepend', 'before')
+          when ':after'           then simpleExpand('append',  'after')
+          when ':footnote-marker' then simpleExpand('prepend', 'footnote-marker')
+          when ':footnote-call'   then simpleExpand('append',  'footnote-call')
 
           when ':outside'
             op          = 'wrap'
@@ -119,15 +122,6 @@ define [
             $context = $context.parent()
 
           else
-            op          = 'append'
-            pseudoName  = pseudoNode.value.replace(':', '')
-            # See if the pseudo element exists.
-            # If not, add it to the DOM
-            cls         = "js-polyfill-pseudo-#{pseudoName}"
-            $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
-            $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
-            # Update the context to be current pseudo element
-            $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
 
       if frame.pseudoSelectors
         newClassName = freshClass()
