@@ -44,7 +44,8 @@ define [
       autogenClassesToString = (autogenClasses) ->
         cssStrs = []
         for clsName, cls of autogenClasses
-          cssStrs.push(".#{clsName} { /* #{cls.selector.toCSS?({}) or cls.selector} */")
+          canonicalizedStrs = _.map cls.selector, (sel) -> sel.toCSS({})
+          cssStrs.push(".#{clsName} { /* BASED_ON: #{canonicalizedStrs.join('|')} */")
           for rule in cls.rules
             cssStrs.push("  #{rule.toCSS({})}")
           cssStrs.push("}")

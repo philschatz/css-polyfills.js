@@ -99,3 +99,44 @@ define [
       '''
       simple(css, html, expected)
 
+
+    it 'supports the Cascading part of CSS by calculating selector specificity', () ->
+      # See http://www.w3.org/TR/CSS21/cascade.html#specificity
+      css = '''
+        div span    { content: '[div span]'; }
+        span[class] { content: '[span[class]]'; }
+        span.foo    { content: '[span.foo]'; }
+        span        { content: '[span]'; }
+        .foo        { content: '[.foo]'; }
+      '''
+      html = '''
+        <div><span class="foo">FAIL</span></div>
+        <span class="foo">FAIL</span>
+        <p><span>FAIL</span></p>
+        <div class="foo">FAIL</div>
+        <span class="baz">FAIL</span>
+      '''
+      expected = '''
+        [span.foo]
+        [span.foo]
+        [span]
+        [.foo]
+        [span[class]]
+      '''
+      simple(css, html, expected)
+
+
+    it 'removes an element only when display:none is the last display rule', () ->
+      css = '''
+        div {
+          display: none;
+          display: block;
+        }
+      '''
+      html = '''
+        <div>Passed</div>
+      '''
+      expected = '''
+        Passed
+      '''
+      simple(css, html, expected)

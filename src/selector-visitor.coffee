@@ -34,7 +34,7 @@ define ['jquery', 'polyfill-path/jquery-selectors'], () ->
 
   return class AbstractSelectorVisitor extends LessVisitor
 
-    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector) -> console.error('BUG: Need to implement this method')
+    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector, originalSelector) -> console.error('BUG: Need to implement this method')
 
     visitRuleset: (node, visitArgs) ->
       # Begin here.
@@ -70,8 +70,9 @@ define ['jquery', 'polyfill-path/jquery-selectors'], () ->
           break
 
       frame.selectors.push
-        domSelector:    node.createDerived(node.elements.slice(0, sliceIndex))
-        pseudoSelector: node.createDerived(node.elements.slice(sliceIndex))
+        originalSelector: node
+        domSelector:      node.createDerived(node.elements.slice(0, sliceIndex))
+        pseudoSelector:   node.createDerived(node.elements.slice(sliceIndex))
 
     visitRulesetOut: (node) ->
       frame = @pop()
@@ -82,4 +83,4 @@ define ['jquery', 'polyfill-path/jquery-selectors'], () ->
         $els = @$root.find(selectorStr)
         console.log("DEBUG: Found #{$els.length}")
 
-        @operateOnElements(frame, $els, node, selector.domSelector, selector.pseudoSelector)
+        @operateOnElements(frame, $els, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector)
