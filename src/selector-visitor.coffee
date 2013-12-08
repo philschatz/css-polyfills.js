@@ -34,40 +34,52 @@ define ['jquery', 'polyfill-path/jquery-selectors'], () ->
 
   return class AbstractSelectorVisitor extends LessVisitor
 
-    operateOnElements: (frame, $els) -> console.error('BUG: Need to implement this method')
+    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector) -> console.error('BUG: Need to implement this method')
 
     visitRuleset: (node, visitArgs) ->
       # Begin here.
       @push {
-        selectorAry: []
-        pseudoName: null
+        selectors: []
       }
       # Build up a selector
       # Note if it ends in ::before or ::after
 
     visitParen: (node, visitArgs) ->
       frame = @peek()
-      frame.insideParen = true
+      frame.isInParen = true
 
     visitParenOut: (node, visitArgs) ->
       frame = @peek()
-      frame.insideParen = true
+      frame.isInParen = false
 
-    visitElement: (node, visitArgs) ->
+    visitSelector: (node, visitArgs) ->
       frame = @peek()
-      if /^:/.test(node.value) and (node.value.replace(':', '').replace(':', '') in PSEUDO_CLASSES)
-        frame.hadPseudoSelectors = true
-      else if not frame.insideParen
-        frame.selectorAry.push(node.toCSS({}))
+
+      # Selectors can be inside a tree.RuleSet or a tree.Paren. Ignore if it is in a paren.
+      return if frame.isInParen
+
+      isPseudo = (name) ->
+        return _.isString(name) and
+                /^:/.test(name) and
+                name.replace(/:/g, '') in PSEUDO_CLASSES
+
+      sliceIndex = node.elements.length
+      for element, i in node.elements
+        if isPseudo(element.value)
+          sliceIndex = i
+          break
+
+      frame.selectors.push
+        domSelector:    node.createDerived(node.elements.slice(0, sliceIndex))
+        pseudoSelector: node.createDerived(node.elements.slice(sliceIndex))
 
     visitRulesetOut: (node) ->
       frame = @pop()
-      # Select the nodes to add the pseudo-element
-      pseudoName = frame.pseudoName
-      selectorAry = frame.selectorAry
 
-      selector = selectorAry.join('')
-      console.log("DEBUG: Searching for {#{selector}}")
-      $els = @$root.find(selector)
-      console.log("DEBUG: Found #{$els.length}")
-      @operateOnElements(frame, $els, node)
+      for selector in frame.selectors
+        selectorStr = selector.domSelector.toCSS({})
+        console.log("DEBUG: Searching for {#{selectorStr}}")
+        $els = @$root.find(selectorStr)
+        console.log("DEBUG: Found #{$els.length}")
+
+        @operateOnElements(frame, $els, node, selector.domSelector, selector.pseudoSelector)

@@ -22,50 +22,6 @@ define [
     constructor: (@selector, @rules) ->
 
 
-
-  class ClassRenamer extends AbstractSelectorVisitor
-    constructor: (root, @autogenClasses={}) -> super(arguments...)
-
-    # Do this after visiting the selector so the AbstractSelectorVisitor has time to squirrel away the original selector
-    visitSelectorOut: (node, visitArgs) ->
-      frame = @peek()
-      # Rewrite the selector to use a class name
-      # but preserve pseudoselectors
-      newElements = []
-      oldElements = []
-      _.each node.elements, (el) ->
-        if /^:/.test(el.value) and (el.value.replace(':', '').replace(':', '') in PSEUDO_CLASSES)
-          frame.hasPseudo = true
-          newElements.push(el)
-        else if newElements.length > 2
-          # Anything following a pseudoselector gets pushed on as well (like `:outside (2)`)
-          newElements.push(el)
-        else
-          oldElements.push(el)
-
-      newClassName = freshClass()
-
-      # For selectivity in the Canonicalization pass squirrel the selector string
-      node.selectivityStr = node.toCSS({})
-
-      frame.selectors ?= {}
-      frame.selectors[newClassName] = node.toCSS({}) # Squirrel the old selector for debugging
-
-      index = 0 # optional, but it seems to be the "specificity"; maybe it should be extracted from the original selector
-      newElements.splice(0,0, new less.tree.Element('', ".#{newClassName}", index))
-      node.elements = newElements
-
-
-    operateOnElements: (frame, $els, node) ->
-      for className, selectorStr of frame.selectors
-        if not frame.hasPseudo
-          $els.addClass("js-polyfill-autoclass #{className}")
-        @autogenClasses[className] = new AutogenClass(selectorStr, node.rules)
-
-
-
-
-
   # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
   # Use a "custom" element name so CSS does not "pick these up" accidentally
   # TODO: have a pass at the end that converts them to <span> elements or something.
@@ -79,64 +35,56 @@ define [
 
     constructor: (root, @autogenClasses={}) -> super(arguments...)
 
-    visitElement: (node, visitArgs) ->
-      super(arguments...)
-      frame = @peek()
-      isPseudo = /^:/.test(node.value)
-      if isPseudo or frame.pseudoSelectors # `:outside` may contain an additional `(0)` Element
-        frame.pseudoSelectors ?= []
-        frame.pseudoSelectors.push(node)
+    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector) ->
+      if not pseudoSelector.elements.length
+        # Simple selector; no pseudoSelectors
+        className = freshClass()
+        $nodes.addClass("js-polyfill-autoclass #{className}")
+        @autogenClasses[className] = new AutogenClass(domSelector.toCSS({}), ruleSet.rules)
 
-    operateOnElements: (frame, $els, node) ->
-      $context = $els
-      for pseudoNode in frame.pseudoSelectors or []
-        pseudoName = pseudoNode.value.replace?('::', ':') # Put a '?' because it might be a less.tree.Paren
+      else
 
-        simpleExpand = (op, pseudoName) ->
-          # See if the pseudo element exists.
-          # If not, add it to the DOM
-          cls         = "js-polyfill-pseudo-#{pseudoName}"
-          $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
-          $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
-          # Update the context to be current pseudo element
-          $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
+        $context = $nodes
+        for pseudoNode in pseudoSelector.elements
+          pseudoName = pseudoNode.value.replace('::', ':')
 
-
-        switch pseudoName
-          when ':before'          then simpleExpand('prepend', 'before')
-          when ':after'           then simpleExpand('append',  'after')
-          when ':footnote-marker' then simpleExpand('prepend', 'footnote-marker')
-          when ':footnote-call'   then simpleExpand('append',  'footnote-call')
-
-          when ':outside'
-            op          = 'wrap'
-            pseudoName  = 'outside'
+          simpleExpand = (op, pseudoName) ->
             # See if the pseudo element exists.
             # If not, add it to the DOM
             cls         = "js-polyfill-pseudo-#{pseudoName}"
-            $needsNew   = $context.not $context.filter (node) ->
-                            $parent = $(node).parent()
-                            return $parent.hasClass(cls)
+            $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
             $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
             # Update the context to be current pseudo element
-            $context = $context.parent()
+            $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
 
-          else
 
-      if frame.pseudoSelectors
-        newClassName = freshClass()
-        $context.addClass("js-polyfill-autoclass #{newClassName}")
+          switch pseudoName
+            when ':before'          then simpleExpand('prepend', 'before')
+            when ':after'           then simpleExpand('append',  'after')
+            when ':footnote-marker' then simpleExpand('prepend', 'footnote-marker')
+            when ':footnote-call'   then simpleExpand('append',  'footnote-call')
 
-        debugSelectors = []
-        # Update the selectors in the AST to use the newClassName
-        _.each node.selectors, (selector) ->
-          debugSelectors.push(selector.selectivityStr or selector.toCSS({}))
-          # TODO: If the elements contains a comment then preserve it (shows the original Selector for debugging)
-          index = 0
-          selector.elements = [new less.tree.Element('', ".#{newClassName}", index)]
+            when ':outside'
+              op          = 'wrap'
+              pseudoName  = 'outside'
+              # See if the pseudo element exists.
+              # If not, add it to the DOM
+              cls         = "js-polyfill-pseudo-#{pseudoName}"
+              $needsNew   = $context.not $context.filter (node) ->
+                              $parent = $(node).parent()
+                              return $parent.hasClass(cls)
+              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              # Update the context to be current pseudo element
+              $context = $context.parent()
 
-        # TODO: Pull out the old selector for use in calculating priorities
-        @autogenClasses[newClassName] = new AutogenClass("(PseudoExpander) #{debugSelectors.join('|')}", node.rules)
+            else
+
+        if $context != $nodes
+          newClassName = freshClass()
+          $context.addClass("js-polyfill-autoclass #{newClassName}")
+
+          # TODO: Pull out the old selector for use in calculating priorities
+          @autogenClasses[newClassName] = new AutogenClass("(PseudoExpander) #{domSelector.toCSS({})} #{pseudoSelector.toCSS({})}", ruleSet.rules)
 
 
 
@@ -182,7 +130,6 @@ define [
 
 
   return {
-    ClassRenamer: ClassRenamer
     PseudoExpander: PseudoExpander
     CSSCanonicalizer: CSSCanonicalizer
   }

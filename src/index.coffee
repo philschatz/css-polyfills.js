@@ -8,7 +8,6 @@ define [
 ], (_, $, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner) ->
 
 
-  ClassRenamer      = LESS_CONVERTERS.ClassRenamer
   PseudoExpander    = LESS_CONVERTERS.PseudoExpander
   CSSCanonicalizer  = LESS_CONVERTERS.CSSCanonicalizer
 
@@ -64,7 +63,7 @@ define [
         fixedPointRunner.run()
 
 
-      changeLessTree [new ClassRenamer($root), new PseudoExpander($root)]
+      changeLessTree [new PseudoExpander($root)]
 
       canonicalizer = new CSSCanonicalizer($root, autogenClasses)
       canonicalizer.run()

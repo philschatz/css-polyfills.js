@@ -76,3 +76,26 @@ define [
         Remote[External]
       '''
       simple(css, html, expected)
+
+
+    it 'supports multiple selectors for a single ruleset', () ->
+      css = '''
+        h3:before,
+        p:nth-of-type(2),
+        h4:nth-of-type(1):outside:before { content: '[Passed]'; }
+      '''
+      html = '''
+        <h3>Test</h3>
+        <p>...</p>
+        <h4>Test</h4>
+        <p>Fail</p>
+      '''
+      expected = '''
+        [Passed]Test
+        ...
+        [Passed]
+        Test
+        [Passed]
+      '''
+      simple(css, html, expected)
+
