@@ -16,6 +16,7 @@ define [
   TargetCounter = PLUGINS.TargetCounter
   TargetText    = PLUGINS.TargetText
   StringSet     = PLUGINS.StringSet
+  ContentSet    = PLUGINS.ContentSet
 
   ElementExtras = EXTRAS.ElementExtras
 
@@ -78,6 +79,7 @@ define [
         new TargetText()
         new StringSet()
         new ElementExtras()
+        new ContentSet()
       ]
 
 

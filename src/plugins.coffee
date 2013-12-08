@@ -4,17 +4,24 @@ define [
 ], (_, $) ->
 
 
+  # Like a less.tree.Anonymous node but explicitly saying it contains a jQuery set.
+  # created by move-to and used by `content: `
+  less.tree.ArrayTreeNode = class ArrayTreeNode
+    constructor: (@values) ->
+    eval: () -> @
+
+
   class MoveTo
     functions:
       'pending': (env, bucketNameNode) ->
         bucketNameNode = bucketNameNode.eval(env)
         console.warn("ERROR: pending(): expects a Keyword") if bucketNameNode not instanceof less.tree.Keyword
-        domAry = env.state.buckets[bucketNameNode.value]
+        domAry = env.state.buckets?[bucketNameNode.value] or []
 
         # Check that all pseudo elements have been evaluated before this function actually runs
         for $node in domAry
           $pseudos = $node.find('.js-polyfill-pseudo')
-          if $pseudos.is(':not(.js-polyfill-evaluated)')
+          if $pseudos.is('[data-js-polyfill-rule-content="pending"]')
             return null
 
         # Keep the `:footnote-call` pseudoelement in the original content by inserting it after
@@ -23,7 +30,7 @@ define [
 
 
         # Empty the bucket so it can be refilled later
-        delete env.state.buckets[bucketNameNode.value]
+        delete env.state.buckets[bucketNameNode.value] if env.state.buckets
         return domAry or []
       'x-selector': (env, selectorNode) ->
         console.warn("ERROR: x-selector(): expects a Quoted") if selectorNode not instanceof less.tree.Quoted
@@ -50,12 +57,20 @@ define [
         bucketNameNode = bucketNameNode.eval(env)
         console.warn("ERROR: move-to: expects a Keyword") if bucketNameNode not instanceof less.tree.Keyword
 
+        ruleName = 'move-to'
+        $node = env.helpers.$context
+        if $node.is("[data-js-polyfill-rule-content='pending']") or $node.find("[data-js-polyfill-rule-content='pending']").length
+
+          # Keep waiting for another tick
+          return false
+
         bucketName = bucketNameNode.value
         env.state.buckets ?= {}
         env.state.buckets[bucketName] ?= []
         env.state.buckets[bucketName].push(env.helpers.$context)
 
         # DO NOT DETACH because move-to can be called more than once on an element.... env.helpers.$context.detach()
+        return 'RULE_COMPLETED' # Understood the rule
 
 
   class DisplayNone
@@ -66,6 +81,9 @@ define [
 
         if 'none' == valNode.value
           env.helpers.$context.detach()
+          env.helpers.didSomthingNonIdempotent('display:none')
+
+        return true # Understood the rule
 
 
 
@@ -216,12 +234,18 @@ define [
         for counterName, counterValue of counters
           env.state.counters[counterName] ?= 0
           env.state.counters[counterName] += counterValue
+        # For debugging, squirrel the counter state on the element
+        env.helpers.$context.attr('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
+        return true # Understood the rule
       'counter-reset': (env, valNode) ->
         countersAndNumbers = valNode.eval(env)
         counters = parseCounters(countersAndNumbers, 0)
         env.state.counters ?= {}
         for counterName, counterValue of counters
           env.state.counters[counterName] = counterValue
+        # For debugging, squirrel the counter state on the element
+        env.helpers.$context.attr('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
+        return true # Understood the rule
 
 
 
@@ -348,6 +372,71 @@ define [
             setString(v)
         else
           console.warn('ERROR: invalid arguments given to "string-set:"')
+          return false # Did NOT Understood the rule
+        return true # Understood the rule
+
+
+
+  # checks that valNode is non-null and none of the values are less.tree.Call
+  # If they are in fact all values then it returns an array of strings-or-$els
+  evaluateValNode = (valNode) ->
+    ret = []
+    if valNode instanceof less.tree.Expression
+      vals = valNode.value
+    else
+      vals = [valNode]
+
+    for val in vals
+      if val instanceof less.tree.Quoted
+        ret.push(val.value)
+      else if val instanceof less.tree.Dimension
+        # Counters return a Number (less.tree.Dimension)
+        ret.push(val.value)
+      else if val instanceof less.tree.ArrayTreeNode
+        # Append the elements in order
+        for $el in val.values
+          ret.push($el)
+      else if val instanceof less.tree.Call
+        # console.log("Not finished evaluating yet: #{val.name}")
+        return null
+      else
+        console.warn("ERROR: Pushing something unknown. [#{val.value}]")
+        ret.push(val.value)
+    return ret
+
+  class ContentSet
+    rules:
+      'content': (env, valNode) ->
+
+        valNode = valNode.eval(env)
+        # If valNode only contains values then all the function calls resolved
+        # so update the contents of the node and mark it as `evaluated`
+        values = evaluateValNode(valNode)
+        if values
+
+          $node = env.helpers.$context
+          # Do not replace pseudo elements
+          $pseudoEls = $node.children('.js-polyfill-pseudo')
+          $pseudoBefore = $pseudoEls.not(':not(.js-polyfill-pseudo-before)')
+          $pseudoRest = $pseudoEls.not($pseudoBefore)
+
+          $node.empty()
+          # Fill in the before pseudo elements
+          $node.append($pseudoBefore)
+
+          # Append 1-by-1 because they values may be multiple jQuery sets (like `content: pending(bucket1) pending(bucket2)`)
+          for val in values
+            $node.append(val)
+
+          # Fill in the rest of the pseudo elements
+          $node.append($pseudoRest)
+
+          $node.addClass('js-polyfill-evaluated')
+
+          return 'RULE_COMPLETED' # Do not run this again (TODO: especially if it called 'pending()')
+
+        return false
+
 
 
   return {
@@ -356,4 +445,5 @@ define [
     TargetCounter: TargetCounter
     TargetText: TargetText
     StringSet: StringSet
+    ContentSet: ContentSet
   }

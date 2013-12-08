@@ -140,3 +140,23 @@ define [
         Passed
       '''
       simple(css, html, expected)
+
+
+    it 'evaluates each rule type only once (move-to:, counter-*:, content: are not evaluated after the first successful evaluation)', () ->
+      css = '''
+        div {
+          counter-increment: counter-a 1;
+          counter-increment: counter-a 1;
+        }
+
+        div:before { content: '[' counter(counter-a) ']'; }
+      '''
+      html = '''
+        <div>Test</div>
+        <div>Test</div>
+      '''
+      expected = '''
+        [1] Test
+        [2] Test
+      '''
+      simple(css, html, expected)
