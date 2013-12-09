@@ -1,4 +1,4 @@
-# CSS Polyfill
+# CSS Polyfills
 
 Make CSS do more by defining simple DOM manipulations instead of ad-hoc JavaScript.
 
