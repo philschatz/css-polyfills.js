@@ -113,5 +113,4 @@ For example, a sorted glossary at the end of a page can be described in CSS usin
 Make sure `bower` and `grunt` are installed in the system by running `npm install -g bower grunt`.
 
 - Run `npm install` to install all the dependencies.
-- Optionally run `coffee -c css-polyfill.coffee` for use in code-coverage analysis using blanket.js
 - Host this project on a static webserver like nginx or Apache or just run `./node_modules/.bin/http-server -p 8080`

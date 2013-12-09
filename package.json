@@ -1,11 +1,11 @@
 {
-  "name": "css-polyfill",
-  "version": "0.0.0",
+  "name": "css-polyfills",
+  "version": "0.0.1",
   "scripts": {
     "install": "bower install && cd node_modules/less && npm install && grunt browser && cd ../../",
     "blanket": {
       "pattern": [
-        "css-polyfill.js"
+        "css-polyfills.js"
       ]
     }
   },
@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/philschatz/css-polyfill.git"
+    "url": "https://github.com/philschatz/css-polyfills.git"
   },
   "keywords": [
     "javascript",
