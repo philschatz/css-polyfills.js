@@ -1,10 +1,10 @@
 {
-  "name": "css-polyfill",
-  "version": "0.0.0",
+  "name": "css-polyfills",
+  "version": "0.0.1",
   "authors": [
     "Philip Schatz <phil@cnx.org>"
   ],
-  "main": "css-polyfill.js",
+  "main": "css-polyfills.js",
   "keywords": [
     "css",
     "polyfill",

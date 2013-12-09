@@ -11,15 +11,12 @@
 
 <script src="../node_modules/less/test/browser/less.js"></script>
 <script src="../node_modules/mocha/mocha.js"></script>
-<!-- <script type="text/javascript" src="../node_modules/grunt-blanket-mocha/support/mocha-blanket.js"></script> -->
-
-
 
 <script src="../bower_components/requirejs/require.js"></script>
 
 <script data-cover-only="src/" src="../bower_components/blanket/dist/mocha/blanket_mocha.js"></script>
 <script src="../bower_components/blanket/src/loaders/blanket_cs.js"></script>
-<script src="../node_modules/grunt-blanket-mocha/support/mocha-blanket"></script>
+<script src="../node_modules/grunt-blanket-mocha/support/mocha-blanket.js"></script>
 
 <script>
 //(function() {
@@ -33,8 +30,6 @@ require.config({
     'underscore':    '../bower_components/underscore/underscore',
     'jquery':        '../bower_components/jquery/jquery',
     'chai':          '../bower_components/chai/chai',
-    // 'mocha-blanket': 'node_modules/grunt-blanket-mocha/support/mocha-blanket'
-    'mocha-blanket': '../bower_components/blanket/src/adapters/mocha-blanket',
   },
   shim: {
     'underscore': {
