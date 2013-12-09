@@ -1,9 +1,10 @@
 require [
   'jquery'
+  'cs!polyfill-path/index'
   'ace/ace'
   'ace/mode/less'
   'ace/mode/html'
-], ($, ace, CSSMode, HTMLMode) ->
+], ($, CSSPolyfill, ace, CSSMode, HTMLMode) ->
 
   # initModal
   $tryItModal = $('#try-it-modal')
@@ -11,6 +12,7 @@ require [
   $cssEditor = $tryItModal.find('.css-editor')
   $htmlEditor = $tryItModal.find('.html-editor')
   $preview = $tryItModal.find('.preview')
+  $previewStyle = $tryItModal.find('style')
   $runReloadButton = $tryItModal.find('.run-reload')
 
   cssEditor = ace.edit($cssEditor[0])
@@ -38,7 +40,11 @@ require [
 
     if $runReloadButton.hasClass('trying-it')
       cssStyle = cssSession.getValue()
-      window.CSSPolyfill($preview, cssStyle)
+      CSSPolyfill $preview, cssStyle, (err, newCSS) ->
+        if err
+          alert("Looks like the CSS is not well-formed. Please correct it (maybe a missing semicolon?) Details: #{err}")
+        else
+          $previewStyle.text(newCSS)
 
     else
       loadPreview()
@@ -48,8 +54,6 @@ require [
     $tryItExample = $(evt.target).closest('.try-it-example')
     cssText = $tryItExample.find('.css-editor code').text()
     htmlText = $tryItExample.find('.html-editor').text()
-
-    console.log 'dsjkfhskdjfh', cssText
 
     cssSession.setValue(cssText)
     htmlSession.setValue(htmlText)

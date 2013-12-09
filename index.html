@@ -14,7 +14,7 @@
     <div class="overview">
       <h1>CSS Polyfills</h1>
       <p>Describe more using CSS</p>
-      <p>Use CSS to describe menial tasks in JavaScript like wrapping elements for styling, moving content around, numbering things, and more!</p>
+      <p>Use CSS to describe menial tasks in JavaScript like wrapping elements for styling, moving content around, numbering things, clickable footnotes, and more!</p>
       <p><a href="#motivation" class="btn btn-primary btn-lg" role="button">Learn More</a> <a href="https://github.com/philschatz/css-polyfill" target="_window" class="btn btn-success btn-lg" role="button"><i class="fa fa-github"></i> GitHub</a></p>
     </div>
     <div class="example">
@@ -37,9 +37,13 @@ a.xref {
 // Wrap Elements just for styling purposes
 .example:outside        { border: 1px solid red; }
 .example:outside:before { content: 'Exercise: '; }
+
 // Set a string ... and then use it
 h1 { string-set: chapter-title content(); }
-.chap-end { content: '[End of ' string(chapter-title) ']'; }</code></pre>
+.chap-end { content: '[End of ' string(chapter-title) ']'; }
+
+// Floating, clickable Footnotes
+.footnote:footnote-call { x-tag-name: 'a'; }</code></pre>
 
       <div><a href="./test/" target="_window" class="btn btn-xs btn-default pull-right"><i class="fa fa-play"></i> run unit tests/coverage</a></div>
 
@@ -62,25 +66,40 @@ h1 { string-set: chapter-title content(); }
 <p>Below are some interactive examples showing how powerful CSS can be at describing these common operations.</p>
 
 
-<h2>Moving Content</h2>
+<h2>Sections</h2>
+<ul>
+  <li><a href="#section-moving">Moving Content</a></li>
+  <li><a href="#section-target-counters">Looking up Cross-referenced text and counters</a></li>
+  <li><a href="#section-elements">Making HTML elements in CSS</a></li>
+  <li><a href="#section-extensions">Adding Extensions</a></li>
+  <li><a href="#section-footnotes"><strong>Putting it Together: Footnotes (Clickable and Floating)</strong></a></li>
+</ul>
+
+<hr/>
+
+<h2 id="section-moving">Moving Content</h2>
 <p>Moving content in the DOM is simple using the <code class="css">move-to: bucket-name;</code> and <code class="css">content: pending(bucket-name);</code> rules defined in <a href="http://www.w3.org/TR/css3-content/#moving">CSS3 Generated and Replaced Content Module</a>.</p>
 <div class="row try-it-example">
 
   <div class="col-md-4">
-    <pre class="css-editor"><code class="css">// You can move content in the DOM
-// See http://www.w3.org/TR/css3-content/#moving
-
-// This element will be moved into the glossary-bucket...
+    <pre class="css-editor"><code class="css">// This element will be moved into the glossary-bucket...
 .def-a { move-to: bucket-a; }
 .def-b { move-to: bucket-b; }
 
 // ... and dumped out into this area in the order added.
 .area-a { content: pending(bucket-a); }
-.area-b { content: pending(bucket-b); }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+.area-b { content: pending(bucket-b); }
 
-  <div class="html-editor">&lt;div class="def-a">This will be in the 1st Area A&lt;/div>
-&lt;div class="def-b">This will be in Area B&lt;/div>
-&lt;div class="def-a">This will also be in the 1st Area A&lt;/div>
+// Also, styling occurs **before** elements are moved so ...
+.before div { background-color: lightgreen; }
+// ... when this CSS is applied **nothing** should be red.
+.area-a .def-a { background-color: red; }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;div class="before">
+  &lt;div class="def-a">This will be in the 1st Area A&lt;/div>
+  &lt;div class="def-b">This will be in Area B&lt;/div>
+  &lt;div class="def-a">This will also be in the 1st Area A&lt;/div>
+&lt;/div>
 
 &lt;h3>Area A&lt;/h3>
 &lt;div class="area-a">&lt;/div>
@@ -99,20 +118,20 @@ h1 { string-set: chapter-title content(); }
 
 
 
-<h2>Looking up Cross-referenced text and counters</h2>
+<h2 id="section-target-counters">Looking up Cross-referenced text and counters</h2>
 <p>Looking up text inside some other element is simple using the <code class="css">content: target-text(attr(href));</code> and <code class="css">content: target-counter(attr(href), chapter-coutner);</code> rules defined in <a href="http://www.w3.org/TR/css3-gcpm/#cross-references">CSS Generated Content for Paged Media Module</a>.</p>
 <div class="row try-it-example">
 
   <div class="col-md-4">
-    <pre class="css-editor"><code class="css">// You can look up text in another element
-// See http://www.w3.org/TR/css3-gcpm/#cross-references
-
-// Just set a counter so we can look it up later
+    <pre class="css-editor"><code class="css">// Just set a counter so we can look it up later
 h3 { counter-increment: chap; }
 h3:before { content: 'Ch ' counter(chap) ': '; }
 
-.xref { content: 'See ' target-text(attr(href), content()); }
-
+// Look up the text on the target
+.xref {
+  content: 'See ' target-text(attr(href), content(contents));
+}
+// Look up the counter on the target
 .xref-counter {
   content: 'See Chapter ' target-counter(attr(href), chap);
 }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
@@ -137,38 +156,43 @@ h3:before { content: 'Ch ' counter(chap) ': '; }
 
 
 
-<h2>Making HTML elements in CSS</h2>
+<h2 id="section-elements">Making HTML elements in CSS</h2>
 <p>It may be useful to add elements into the HTML (for styling). CSS2 has the <code>:before</code> and <code>:after</code> selectors for this reason.</p>
 <p>The <a href="http://www.w3.org/TR/css3-content/#pseudo-elements">CSS3 Content Module</a> is like <code>:before</code> on steroids! You can nest the pseudo selectors to add and style arbitrarily large elements. It also introduces the <code>:outside</code> pseudoselector which wraps an element and adds additional styling.</p>
 <p>The example below builds on the previous example of using counters and <code>target-text</code> to allow styling individual parts of the injected "Ch #: " text.</p>
 <div class="row try-it-example">
 
   <div class="col-md-4">
-    <pre class="css-editor"><code class="css">h3 { counter-increment: chap; }
-// h3:before { content: 'Ch ' counter(chap) ': '; }
-h3:before:before  { content: 'Ch '; }
-h3:before         { content: counter(chap); }
-h3:before:after   { content: ': '; }
-h3:outside:before { content: '[chapter starts here]'; }
+    <pre class="css-editor"><code class="css">h3:before { content: 'Ch ' counter(chap) ': '; }
+// The previous rule is valid CSS2 and creates the following DOM:
+// [ [Ch 2:] Chapter Title]
+// Note: There are only 2 elements we can style
 
-// The following is the same as before
-.xref { content: 'See ' target-text(attr(href), content()); }
-.xref-counter {
-  content: 'See Chapter ' target-counter(attr(href), chap);
-}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+h3                { counter-increment: chap; }
+h3:before:before  { content: '[Ch ]'; }
+h3:before         { content: '[' counter(chap) ']'; }
+h3:before:after   { content: '[: ]'; }
+h3:outside:before { content: '(chapter starts here)'; }
+
+// Instead, the previous styles create the following
+// (providing 7 elements that can be styled):
+// [
+//   [Chapter starts here]
+//   [
+//     [ [Ch] [2] [: ] ]
+//     Chapter Title
+//   ]
+// ]
+</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
 
   <div class="html-editor">&lt;h3 id="ch1">The Appendicular Skeleton&lt;/h3>
-&lt;p>Here is a reference to another chapter:
-  &lt;a href="#ch2" class="xref">Link&lt;/a>
-&lt;/p>
+&lt;p>Lorem ipsum lorem ipsum.&lt;/p>
+&lt;p>Lorem ipsum lorem ipsum.&lt;/p>
 
 &lt;h3 id="ch2">The Brain and Cranial Nerves&lt;/h3>
-&lt;p>Here is a reference to another chapter:
-  &lt;a href="#ch1" class="xref">Link&lt;/a>
-&lt;/p>
-&lt;p>A reference using target-counter:
-  &lt;a href="#ch1" class="xref-counter">Link&lt;/a>
-&lt;/p></div>
+&lt;p>Lorem ipsum lorem ipsum.&lt;/p>
+&lt;p>Lorem ipsum lorem ipsum.&lt;/p>
+</div>
 
 
 </div><!-- /row -->
@@ -178,13 +202,13 @@ h3:outside:before { content: '[chapter starts here]'; }
 
 
 
-<h3>Adding Extensions</h3>
+<h2 id="section-extensions">Adding Extensions</h2>
 
 <p>Continuing with the Move example, it may be nice to sort the elements being moved like in a glossary.</p>
 <p>Adding these extensions is pretty straightforward. Here is the definition of <code class="css">x-sort(bucket)</code>.</p>
 
 <pre>
-'x-sort': ($context, pendingElsNode) ->
+'x-sort': (env, pendingElsNode) ->
   $pendingEls = pendingElsNode.value
   sorted = _.clone($pendingEls).sort (a, b) ->
     a = a.text()
@@ -232,7 +256,7 @@ h3:outside:before { content: '[chapter starts here]'; }
 
 
 
-<h3>More Extensions</h3>
+<h2 id="section-more-extensions">More Extensions</h2>
 
 <p>Sometimes it is useful to sort by something other than the text.</p>
 <p>With the polyfills you can add a second argument to sort that provides a selector to specify what to sort on.</p>
@@ -276,7 +300,7 @@ h3:outside:before { content: '[chapter starts here]'; }
 
 
 
-<h3>Setting Strings</h3>
+<h3 id="section-strings">Setting Strings</h3>
 
 <p>Sometimes it is useful to set a string and then use it later. An example would be having the current chapter on each page of a book.</p>
 <p>Fortunately <a href="http://www.w3.org/TR/css3-gcpm/#named-strings">CSS Generated Content for Paged Media</a> defines the <code>string-set: string-name value;</code> and <code>content: string(string-name);</code> rules.</p>
@@ -308,113 +332,61 @@ h3 { string-set: chapter-title content(); }
 
 
 
+<h2 id="section-footnotes">Putting it Together: Footnotes (Clickable and Floating)</h2>
 
+<p>Footnotes that move to the bottom of a page and leave a little numbered link are described in <a href="http://www.w3.org/TR/css3-gcpm/#footnotes">Generated Content for Paged Media: Footnotes</a></p>
+<p>They can be implemented using the pseudoselector <code>:footnote-call</code> and the extension rules <code>x-tag-name:</code>, <code>x-attr:</code>, and <code>x-ensure-id:</code>.</p>
 
+<p>Here is an example implementation of footnotes.</p>
 
+<div class="row try-it-example">
 
-
-
-
-
-
-
-
-<h2 id="kitchen-sink">The Kitchen Sink</h2>
-
-
-
-<div class="try-it-example kitchen-sink">
-<div class="row">
-
-  <div class="col-md-6"><pre class="css-editor"><code class="css">// You can replace the content of any element (not just pseudo elements)
-
-.contents-simple { content: 'AFTER'; }
-.contents-attr { content: attr(data-after); }
-
-// The content of ::before/after elements will gracefully fallback
-h1::before {
-  content: 'Simple';
-  content: 'Unparseable because of' invalid-magic() ' function';
-  content: 'Chapter ' counter(chapter-counter) ': ';
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">.footnote {
+  // Ensure the footnote has an `id` (so we can link to it)
+  x-ensure-id: 'id';
+  // Move it to the next `footnote-area` (page end)
+  move-to: footnote-area;
+  counter-increment: footnote;
+  display: block; // Plain CSS, nothing interesting
+}
+// The content that is left behind after the move-to
+.footnote:footnote-call {
+  // Make the stub that is left behind a link...
+  x-tag-name: 'a';
+  // ... whose href points to the footnote.
+  x-attr: href '#' attr(id);
+  content: '[###]';
+  content: '[' target-counter(attr(href), footnote) ']';
 }
 
-// Move example
-.definition { move-to: glossary-bucket; }
-.chapter-glossary { content: x-sort(pending(glossary-bucket), '.sort-by'); }
-
-// Counter examples
-h1 {
-  counter-reset: term-counter 0;
-  counter-increment: chapter-counter 1;
-}
-.definition { counter-increment: term-counter 1; }
-.definition::before { content: '[t' counter(term-counter) ']'; }
-
-
-.target-chapter {
-  //content: 'See Chapter ' target-counter(attr(href), chapter-counter);
-  content: 'See Chapter ' target-counter(attr(href), chapter-counter) ':' target-text(attr(href), content());
+//.footnote:footnote-marker,
+.footnote:before {
+  content: counter(footnote) ': ';
 }
 
+.footnotes {
+  content: pending(footnote-area);
+  //counter-reset: footnote;
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
 
-//.footnote::before { content: counter(footnote-counter); }
-//.footnote::footnote-call { content: counter(footnote-counter); }
-//.footnote { move-to: footnote-bucket; }
-
-//.footnotes-area { content: pending(footnote-bucket); }
-</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
-
-<div class="html-editor">
-&lt;div>&lt;span class="contents-simple">before&lt;/span> and using an attribute: &lt;span class="contents-attr" data-after="Aloha!">Hello!&lt;/span>&lt;/div>
-
-    &lt;h1 id="chapter-first">Kinetics&lt;/h1>
-
-&lt;p>Some chapter content goes here with a &lt;span class="footnote">Footnote text&lt;/span>&lt;/p>
-&lt;div class="definition">
-  &lt;b>term2&lt;/b> is defined as &lt;b>force&lt;/b> times distance over time &lt;span class="sort-by">3&lt;/span>
-&lt;/div>
-
-&lt;h2>Vectors and Scalars&lt;/h2>
-&lt;p>Some chapter content goes here&lt;/p>
-&lt;a href="#chapter-first" class="target-chapter">Link&lt;/a>
-&lt;div class="definition">
-  &lt;b>term3&lt;/b> is defined as mass times acceleration &lt;span class="sort-by">1&lt;/span>
-&lt;/div>
-
-&lt;div class="definition">
-  &lt;b>term1&lt;/b> is defined as &lt;b>force&lt;/b> times distance over time &lt;span class="sort-by">2&lt;/span>
-&lt;/div>
-
-&lt;p>Some chapter content goes here&lt;/p>
-
-&lt;h2>Glossary&lt;/h2>
-&lt;section class="chapter-glossary">&lt;/section>
-
-&lt;h2>Footnotes Area&lt;/h2>
-&lt;section class="footnotes-area">&lt;/section>
-
+  <div class="html-editor">&lt;p>Text with a &lt;span class="footnote">FOOTNOTE!&lt;/span>.&lt;/p>
+&lt;p>More paragraphs with &lt;span class="footnote">footnote text&lt;/span> &lt;span class="footnote">another footnote&lt;/span>.&lt;/p>
 &lt;hr/>
-
-&lt;h1 id="chapter-second">Work, Energy, and Energy Resources&lt;/h1>
-&lt;p>Some chapter content goes here&lt;/p>
-
-&lt;div class="definition">
-  &lt;b>work&lt;/b> is defined as &lt;b>force&lt;/b> times distance
-&lt;/div>
-
-&lt;h2>Glossary&lt;/h2>
-&lt;section class="chapter-glossary">&lt;/section>
-
-
+&lt;h3>Footnotes Area (bottom of the page/chapter)&lt;/h3>
+&lt;div class="footnotes">&lt;/div>
 </div>
+
 
 </div><!-- /row -->
 
-</div><!-- /try-it-example -->
 
 
 </div><!-- /#examples.container -->
 </div><!-- /#examples -->
+
+
+
 
 
 <div id="try-it-modal" class="modal fade" tabindex="-1" role="dialog" aria-labelledby="tryItLabel" aria-hidden="true">
@@ -451,6 +423,7 @@ h1 {
                   </h3>
                 </div>
                 <div class="panel-body">
+                  <style></style>
                   <div class="preview"></div>
                 </div>
               </div>
@@ -495,7 +468,18 @@ h1 {
   var require = {
     //baseUrl: ,
     paths: {
-        ace: 'bower_components/ace/lib/ace'
+      'polyfill-path': 'src',
+      'cs':            'bower_components/require-cs/cs',
+      'coffee-script': 'bower_components/coffee-script/extras/coffee-script',
+      'underscore':    'bower_components/underscore/underscore',
+      'jquery':        'bower_components/jquery/jquery',
+
+      ace: 'bower_components/ace/lib/ace'
+    },
+    shim: {
+      'underscore': {
+        exports: '_'
+      },
     },
     waitSeconds: 30
   };
@@ -507,9 +491,6 @@ h1 {
 <script src="./bower_components/requirejs/require.js"></script>
 <script src="./bower_components/jquery/jquery.min.js"></script>
 <script src="./bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
-<script src="./bower_components/underscore/underscore.js"></script>
-
-<script type="text/coffeescript" src="./css-polyfill.coffee"></script>
 
 <script type="text/coffeescript" src="./site/try-it.coffee"></script>
 

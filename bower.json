@@ -25,6 +25,11 @@
     "bootstrap": "~3.0.2",
     "font-awesome": "~4.0.3",
     "coffee-script": "~1.6.3",
-    "blanket": "#development"
+    "blanket": "#development",
+    "require-cs": "~0.4.4",
+    "chai": "~1.8.1"
+  },
+  "resolutions": {
+    "coffee-script": "~1.6.3"
   }
 }
