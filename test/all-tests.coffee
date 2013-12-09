@@ -160,3 +160,26 @@ define [
         [2] Test
       '''
       simple(css, html, expected)
+
+
+    it 'puts pseudoselectors into the correct spot', () ->
+      # The `*` was also matching newly-added pseudoselectors
+      css = '''
+        div *:before {
+          content: 'Hello';
+        }
+        div *:after {
+          content: 'World';
+        }
+      '''
+      html = '''
+        <div class="glossary">
+          <p>Funny</p>
+          <p>Happy</p>
+        </div>
+      '''
+      expected = '''
+        Hello Funny World
+        Hello Happy World
+      '''
+      simple(css, html, expected)

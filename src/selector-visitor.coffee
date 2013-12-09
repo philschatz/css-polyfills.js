@@ -78,9 +78,23 @@ define ['jquery', 'polyfill-path/jquery-selectors'], () ->
       frame = @pop()
 
       for selector in frame.selectors
-        selectorStr = selector.domSelector.toCSS({})
+
+        # Make sure the actual jQuery string excludes pseudo-elements that were added.
+        selectorStr = []
+        for el in selector.domSelector.elements
+          selectorStr.push(el.toCSS({}))
+          # Include the pseudo-exclude on selector elements for `*` and `.classname`.
+          # Elements and ID's can be excluded because they will never match a pseudoselector
+          # since a pseudoselector may get an id but later, and the pseudoselector's element
+          # is not one that exists in HTML.
+          if /^[\*]/.test(el.value)
+            selectorStr.push(':not(.js-polyfill-pseudo)')
+        selectorStr = selectorStr.join('')
+        # selectorStr = selector.domSelector.toCSS({})
+
         console.log("DEBUG: Searching for {#{selectorStr}}")
         $els = @$root.find(selectorStr)
+        # FIXME: Instead of removing pseudoselectors after selection, annotate the selectorStr to include `:not(.js-polyfill-pseudo)` after every element
         console.log("DEBUG: Found #{$els.length}")
 
         @operateOnElements(frame, $els, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector)
