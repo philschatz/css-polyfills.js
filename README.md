@@ -14,6 +14,7 @@ Some of the features are outlined below. The project has support for:
 - setting strings using `string-set:`
 - manipulating attributes on elements using `x-tag-name:`, `x-attr:`, and `x-ensure-id:`
 - **Clickable, Floating Footnotes** using several of the plugins above
+- all the [jQuery Selector Extensions](http://api.jquery.com/category/selectors/jquery-selector-extensions/) like `:has()`, `:lt()`
 
 ## Moving Content
 
