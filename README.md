@@ -4,7 +4,7 @@ Make CSS do more by defining simple DOM manipulations instead of ad-hoc JavaScri
 
 This project implements many of the CSS selectors and rules defined in [CSS3 Generated and Replaced Content Module](http://www.w3.org/TR/css3-content/) and [CSS3 Generated Content for Paged Media Module](http://www.w3.org/TR/css3-gcpm/) but not supported in browsers.
 
-# Features
+## Features Overview
 
 Some of the features are outlined below. The project has support for:
 
@@ -14,6 +14,39 @@ Some of the features are outlined below. The project has support for:
 - setting strings using `string-set:`
 - manipulating attributes on elements using `x-tag-name:`, `x-attr:`, and `x-ensure-id:`
 - **Clickable, Floating Footnotes** using several of the plugins above
+
+
+# All New Rules and Selectors
+
+## New Selectors
+
+- `:outside` : Creates a new element **around** the selected one (like `:before`)
+- `:before:after` : Allows chaining of pseudoelements
+- `:footnote-call` : A marker element that remains if an element is moved elsewhere in the page
+- `:has(selector)` : Matches an element if elements inside it match `selector` (from jQuery)
+- `:lt(num)` : Select all elements at an index less than index within the matched set (from jQuery)
+- `:button`, `:checkbox`, `:eq()`, `:even`, `:file`, `:first`, `:gt()`, `:has()`, `:header`, `:hidden`, `:image`, `:input`, `:last`, `:lt()`, `:odd`, `:parent`, `:password`, `:radio`, `:reset`, `:submit`, `:text` (see [jQuery Selector Extensions](http://api.jquery.com/category/selectors/jquery-selector-extensions/) for more information)
+
+
+## New Rules
+
+- `move-to: bucket-name;` : Moves an element later in the DOM
+- `string-set: string-name value...;` : Sets a string to be used later; where `value...` can include a string literal `"Hello"`, `attr(...)`, `counter(...)`, or `content(...)`
+- `x-ensure-id: 'attr-name';` : Ensure the element has an attribute named `attr-name` and that it contains a unique ID (useful for footnotes)
+- `x-tag-name: 'a';` : Ensure the element has a certain tag name (for making clickable pseudoelements)
+- `x-attr: attr-name value...;` : Ensure the element has a certain attribute defined (for making clickable pseudoelements)
+
+## New Content Functions
+
+- `content: pending(bucket-name);`
+- `content: string(string-name);`
+- `content: target-counter(target-id, counter-name);`
+- `content: target-text(target-id, limit);` where `limit` can include `attr(...)` and `content(...)`
+- `content(...)` : The content function as defined in [CSS Generated Content for Paged Media](http://www.w3.org/TR/css3-gcpm/#setting-named-strings-the-string-set-pro) and contains one argument which may be `contents`, `before`, `after` or `first-letter`
+- `x-sort(bucket, 'optional-selector')`: Used around the `pending(...)` function to sort the elements (like for an alphabetized Glossary or Index)
+
+
+# Examples
 
 ## Moving Content
 
