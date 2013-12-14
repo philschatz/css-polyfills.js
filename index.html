@@ -43,7 +43,11 @@ h1 { string-set: chapter-title content(); }
 .chap-end { content: '[End of ' string(chapter-title) ']'; }
 
 // Floating, clickable Footnotes
-.footnote:footnote-call { x-tag-name: 'a'; }</code></pre>
+.footnote:footnote-call { x-tag-name: 'a'; }
+
+// jQuery selector Extensions
+.example:has(>.title) { border: 1px dotted; }
+.example:lt(3)        { background-color: red; }</code></pre>
 
       <div><a href="./test/" target="_window" class="btn btn-xs btn-default pull-right"><i class="fa fa-play"></i> run unit tests/coverage</a></div>
 
@@ -73,6 +77,7 @@ h1 { string-set: chapter-title content(); }
   <li><a href="#section-elements">Making HTML elements in CSS</a></li>
   <li><a href="#section-extensions">Adding Extensions</a></li>
   <li><a href="#section-footnotes"><strong>Putting it Together: Footnotes (Clickable and Floating)</strong></a></li>
+  <li><a href="#section-jquery-selector-extensions">jQuery Selector Extensions (for free!)</a></li>
 </ul>
 
 <hr/>
@@ -379,6 +384,46 @@ h3 { string-set: chapter-title content(); }
 
 
 </div><!-- /row -->
+
+
+
+
+
+
+
+
+<h2 id="section-jquery-selector-extensions">jQuery Selector Extensions</h2>
+
+<p>jQuery has several useful <a target="_window" href="http://api.jquery.com/category/selectors/jquery-selector-extensions/">extensions to CSS selectors</a> that allow us to target elements better. Now, you can use them directly in CSS files!</p>
+<p>Some examples include: <code>:has()</code> for looking inside an element and <code>:lt()</code> for matching elements less than a specific index.</p>
+
+<p>Try using them with the demo below!</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">.example:has(>.title) {
+  background-color: pink;
+}
+
+.count:lt(3) {
+  background-color: lightblue;
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;div class="example">Does not have title&lt;/div>
+&lt;div class="example">&lt;div class="title">Has title&lt;/div>&lt;/div>
+
+&lt;hr/>
+
+&lt;div class="count">First&lt;/div>
+&lt;div class="count">Second&lt;/div>
+&lt;div class="count">Third&lt;/div>
+&lt;div class="count">Fourth&lt;/div>
+</div>
+
+
+</div><!-- /row -->
+
 
 
 
