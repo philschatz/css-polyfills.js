@@ -21,37 +21,32 @@
 
   <h3>What if you could use CSS to do more?</h3>
 
-<pre><code class="css">// Move content in the DOM
-.definition    { move-to: glossary-bucket; }
-.glossary-area {
-  content: pending(glossary-bucket);
-  // Or add custom extensions:
-  content: x-sort(pending(glossary-bucket),
-                  x-selector('.date'));
-}
+<pre><code class="css">// Use jQuery selector Extensions
+.example:has(>.title) { border: 1px dotted; }
+.example:lt(3)        { background-color: red; }
+
+// Wrap Elements just for styling purposes
+.example:outside        { border: 1px solid red; }
+.example:outside:before { content: 'Example: '; }
+
+// Floating, clickable Footnotes
+.footnote:footnote-call { x-tag-name: 'a'; }
+
+// Advanced Attribute Lookup
+.note[title] > .title { content: x-parent(attr(title)); }
+
 // Number links to other elements
 a.xref {
   content: 'See Chap ' target-counter(attr(href), chapter)
                   ': ' target-text(attr(href), content());
 }
-// Wrap Elements just for styling purposes
-.example:outside        { border: 1px solid red; }
-.example:outside:before { content: 'Exercise: '; }
+// Move content in the DOM
+.definition    { move-to: glossary-bucket; }
+.glossary-area { content: pending(glossary-bucket); }
 
 // Set a string ... and then use it
 h1 { string-set: chapter-title content(); }
-.chap-end { content: '[End of ' string(chapter-title) ']'; }
-
-// Floating, clickable Footnotes
-.footnote:footnote-call { x-tag-name: 'a'; }
-
-// jQuery selector Extensions
-.example:has(>.title) { border: 1px dotted; }
-.example:lt(3)        { background-color: red; }
-
-// Advanced Attribute Lookup
-.note[title] > .title { content: x-parent(attr(title)); }
-</code></pre>
+.chap-end { content: '[End of ' string(chapter-title) ']'; }</code></pre>
 
       <div><a href="./test/" target="_window" class="btn btn-xs btn-default pull-right"><i class="fa fa-play"></i> run unit tests/coverage</a></div>
 
