@@ -184,6 +184,13 @@ define [
 
   class TargetCounter
     functions:
+      'x-parent': (env, valNode) ->
+        $context = env.helpers.$context
+        env.helpers.$context = $context.parent()
+        valNode = valNode.eval(env)
+        env.helpers.$context = $context
+        return valNode
+
       'attr': (env, attrNameNode) ->
         attrNameNode = attrNameNode.eval(env)
         console.warn("ERROR: attr(): expects a Keyword") if attrNameNode not instanceof less.tree.Keyword

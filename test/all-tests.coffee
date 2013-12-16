@@ -183,3 +183,21 @@ define [
         Hello Happy World
       '''
       simple(css, html, expected)
+
+
+    it 'supports the x-parent() for changing the context node', () ->
+      css = '''
+        .note[data-label] > .title {
+          content: x-parent(attr(data-label));
+        }
+      '''
+      html = '''
+        <div class="note" data-label="Test Passed">
+          <div class="title">FAIL</div>
+        </div>
+      '''
+      expected = '''
+        Test Passed
+      '''
+      simple(css, html, expected)
+

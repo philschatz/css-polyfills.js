@@ -47,7 +47,11 @@ h1 { string-set: chapter-title content(); }
 
 // jQuery selector Extensions
 .example:has(>.title) { border: 1px dotted; }
-.example:lt(3)        { background-color: red; }</code></pre>
+.example:lt(3)        { background-color: red; }
+
+// Advanced Attribute Lookup
+.note[title] > .title { content: x-parent(attr(title)); }
+</code></pre>
 
       <div><a href="./test/" target="_window" class="btn btn-xs btn-default pull-right"><i class="fa fa-play"></i> run unit tests/coverage</a></div>
 
