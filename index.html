@@ -15,7 +15,7 @@
       <h1>CSS Polyfills</h1>
       <p>Describe more using CSS!</p>
       <p>Use CSS to describe menial tasks in JavaScript like <a href="#section-elements">wrapping elements for styling</a>, <a href="#section-moving">moving content around</a>, <a href="#section-target-counters">numbering things</a>, <a href="#section-footnotes">clickable footnotes</a>, and more!</p>
-      <p><a href="#motivation" class="btn btn-primary btn-lg" role="button">Learn More</a> <a href="https://github.com/philschatz/css-polyfill" target="_window" class="btn btn-success btn-lg" role="button"><i class="fa fa-github"></i> GitHub</a></p>
+      <p><a href="#motivation" class="btn btn-primary btn-lg" role="button">Learn More</a> <a href="https://github.com/philschatz/css-polyfills" target="_window" class="btn btn-success btn-lg" role="button"><i class="fa fa-github"></i> GitHub</a></p>
     </div>
     <div class="example">
 
@@ -43,7 +43,15 @@ h1 { string-set: chapter-title content(); }
 .chap-end { content: '[End of ' string(chapter-title) ']'; }
 
 // Floating, clickable Footnotes
-.footnote:footnote-call { x-tag-name: 'a'; }</code></pre>
+.footnote:footnote-call { x-tag-name: 'a'; }
+
+// jQuery selector Extensions
+.example:has(>.title) { border: 1px dotted; }
+.example:lt(3)        { background-color: red; }
+
+// Advanced Attribute Lookup
+.note[title] > .title { content: x-parent(attr(title)); }
+</code></pre>
 
       <div><a href="./test/" target="_window" class="btn btn-xs btn-default pull-right"><i class="fa fa-play"></i> run unit tests/coverage</a></div>
 
@@ -66,6 +74,8 @@ h1 { string-set: chapter-title content(); }
 <p>Below are some interactive examples showing how powerful CSS can be at describing these common operations.</p>
 
 
+<p>For a full list of CSS selectors, rules, and functions see the <a href="https://github.com/philschatz/css-polyfills#readme" target="_window" class="btn btn-success btn-sm" role="button"><i class="fa fa-github"></i> GitHub README</a></p>
+
 <h2>Sections</h2>
 <ul>
   <li><a href="#section-moving">Moving Content</a></li>
@@ -73,6 +83,7 @@ h1 { string-set: chapter-title content(); }
   <li><a href="#section-elements">Making HTML elements in CSS</a></li>
   <li><a href="#section-extensions">Adding Extensions</a></li>
   <li><a href="#section-footnotes"><strong>Putting it Together: Footnotes (Clickable and Floating)</strong></a></li>
+  <li><a href="#section-jquery-selector-extensions">jQuery Selector Extensions (for free!)</a></li>
 </ul>
 
 <hr/>
@@ -379,6 +390,46 @@ h3 { string-set: chapter-title content(); }
 
 
 </div><!-- /row -->
+
+
+
+
+
+
+
+
+<h2 id="section-jquery-selector-extensions">jQuery Selector Extensions</h2>
+
+<p>jQuery has several useful <a target="_window" href="http://api.jquery.com/category/selectors/jquery-selector-extensions/">extensions to CSS selectors</a> that allow us to target elements better. Now, you can use them directly in CSS files!</p>
+<p>Some examples include: <code>:has()</code> for looking inside an element and <code>:lt()</code> for matching elements less than a specific index.</p>
+
+<p>Try using them with the demo below!</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">.example:has(>.title) {
+  background-color: pink;
+}
+
+.count:lt(3) {
+  background-color: lightblue;
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;div class="example">Does not have title&lt;/div>
+&lt;div class="example">&lt;div class="title">Has title&lt;/div>&lt;/div>
+
+&lt;hr/>
+
+&lt;div class="count">First&lt;/div>
+&lt;div class="count">Second&lt;/div>
+&lt;div class="count">Third&lt;/div>
+&lt;div class="count">Fourth&lt;/div>
+</div>
+
+
+</div><!-- /row -->
+
 
 
 
