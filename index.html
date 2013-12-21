@@ -36,9 +36,14 @@
 .note[title] > .title { content: x-parent(attr(title)); }
 
 // Number links to other elements
-a.xref {
+a[href] {
   content: 'See Chap ' target-counter(attr(href), chapter)
                   ': ' target-text(attr(href), content());
+}
+// Customize Link text based on what the link target is
+a[href] {
+  content: x-target-is(attr(href), 'table') 'See Table';
+  content: x-target-is(attr(href), '.note') 'See Note';
 }
 // Move content in the DOM
 .definition    { move-to: glossary-bucket; }
@@ -78,6 +83,7 @@ h1 { string-set: chapter-title content(); }
   <li><a href="#section-elements">Making HTML elements in CSS</a></li>
   <li><a href="#section-extensions">Adding Extensions</a></li>
   <li><a href="#section-footnotes"><strong>Putting it Together: Footnotes (Clickable and Floating)</strong></a></li>
+  <li><a href="#section-customize-link-text">Customizing Link Text</a></li>
   <li><a href="#section-jquery-selector-extensions">jQuery Selector Extensions (for free!)</a></li>
 </ul>
 
@@ -388,6 +394,48 @@ h3 { string-set: chapter-title content(); }
 
 
 
+
+
+
+<h3 id="section-customize-link-text">Customizing Link Text</h3>
+
+<p>Sometimes it is useful to change the text of a link based on what it points to. For example, a link to a figure may say "see Figure 4.3" and a link to another chapter might say "See Section 7.2: Trapezoids".</p>
+<p>Changing the text of a link can be accomplished using <code>x-target-is(id, '.title')</code> which works like a switch statement in many programming languages.</p>
+
+<p>An example is shown below:</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">a[href] {
+  // Use x-target-is as a switch for which link text to use
+  content: x-target-is(attr(href), 'figure') 'See Figure';
+  content: x-target-is(attr(href), 'section')
+           'See ' target-text(attr(href), content(before));
+  content: x-target-is(attr(href), 'section')
+           'See ' target-text(attr(href), content(before))
+           target-text(attr(href), content('> .title'));
+}
+// Some uninteresting formatting just for the demo
+section { counter-increment: section; }
+section::before { content: counter(section) ' '; }
+</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;figure id="id-figure">&lt;i class="fa fa-smile-o">&lt;/i> image&lt;/figure>
+&lt;a href="#id-figure">LINK&lt;/a>
+&lt;hr/>
+
+&lt;section id="id-section">Section without a title&lt;/section>
+&lt;section id="id-section-title">
+  &lt;strong class="title">Kinematics&lt;/strong>
+  Section with a title
+&lt;/section>
+&lt;a href="#id-section">LINK&lt;/a>
+&lt;br/>
+&lt;a href="#id-section-title">LINK&lt;/a></div>
+
+
+</div><!-- /row -->
 
 
 

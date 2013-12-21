@@ -10,7 +10,7 @@
     }
   },
   "dependencies": {
-    "less": "git://github.com/less/less.js.git#master"
+    "less": "git://github.com/less/less.js.git#4fd970426662600ecb41bced71206aece5a88ee4"
   },
   "devDependencies": {
     "grunt-blanket-mocha": "git://github.com/philschatz/grunt-blanket-mocha.git#fixes-for-octokit.js",

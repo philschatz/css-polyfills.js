@@ -201,3 +201,37 @@ define [
       '''
       simple(css, html, expected)
 
+
+    it 'supports target-text(..., content("> .selector"))', () ->
+      css = '''
+        a[href] {
+          content: 'FAILED';
+          content: target-text(attr(href), content('> .title'));
+        }
+      '''
+      html = '''
+        <div id="id123"><div class="title">PASSED</div>[Some Text]</div>
+        <a href="#id123">FAIL</a>
+      '''
+      expected = '''
+        PASSED [Some Text]
+        PASSED
+      '''
+      simple(css, html, expected)
+
+    it 'does not match the rule when content("> .selector") is null', () ->
+      css = '''
+        a[href] {
+          content: 'PASSED';
+          content: target-text(attr(href), content('> .title'));
+        }
+      '''
+      html = '''
+        <div id="id123">[Some Text]</div>
+        <a href="#id123">FAIL</a>
+      '''
+      expected = '''
+        [Some Text]
+        PASSED
+      '''
+      simple(css, html, expected)

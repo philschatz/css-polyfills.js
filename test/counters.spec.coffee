@@ -1,58 +1,5 @@
 define ['cs!./simple'], (simple) ->
 
-
-  describe 'target-counter', () ->
-    it 'does not care if the target occurs before, above, after, or below', () ->
-      css = '''
-        .chap { counter-increment: chap foo; }
-        .chap:before { content: 'Ch ' counter(chap) ': '; }
-
-        .xref {
-          content: 'See ' target-counter(attr(href), chap);
-        }
-      '''
-      html = '''
-        - <a href="#id1" class="xref">Link</a>
-        - <a href="#id2" class="xref">Link</a>
-        - <a href="#id3" class="xref">Link</a>
-        - <a href="#id4" class="xref">Link</a>
-
-
-        <div id="id1" class="chap">
-          <div id="id2" class="chap">
-            - <a href="#id1" class="xref">Link</a>
-            - <a href="#id2" class="xref">Link</a>
-            - <a href="#id3" class="xref">Link</a>
-            - <a href="#id4" class="xref">Link</a>
-          </div>
-        </div>
-
-
-        <div id="id3" class="chap">
-          <div id="id4" class="chap">
-            - <a href="#id1" class="xref">Link</a>
-            - <a href="#id2" class="xref">Link</a>
-            - <a href="#id3" class="xref">Link</a>
-            - <a href="#id4" class="xref">Link</a>
-          </div>
-        </div>
-
-        - <a href="#id1" class="xref">Link</a>
-        - <a href="#id2" class="xref">Link</a>
-        - <a href="#id3" class="xref">Link</a>
-        - <a href="#id4" class="xref">Link</a>
-      '''
-      expected = '''
-        - See 1 - See 2 - See 3 - See 4
-        Ch 1:
-        Ch 2: - See 1 - See 2 - See 3 - See 4
-        Ch 3:
-        Ch 4: - See 1 - See 2 - See 3 - See 4
-        - See 1 - See 2 - See 3 - See 4
-      '''
-      simple(css, html, expected)
-
-
   describe 'Counters', () ->
 
     describe 'counter-reset', () ->
@@ -308,3 +255,84 @@ define ['cs!./simple'], (simple) ->
         '''
         simple(css, html, expected)
 
+
+  describe 'target-* functions', () ->
+
+    it 'does not care if the target-counter occurs before, above, after, or below', () ->
+      css = '''
+        .chap { counter-increment: chap foo; }
+        .chap:before { content: 'Ch ' counter(chap) ': '; }
+
+        .xref {
+          content: 'See ' target-counter(attr(href), chap);
+        }
+      '''
+      html = '''
+        - <a href="#id1" class="xref">Link</a>
+        - <a href="#id2" class="xref">Link</a>
+        - <a href="#id3" class="xref">Link</a>
+        - <a href="#id4" class="xref">Link</a>
+
+
+        <div id="id1" class="chap">
+          <div id="id2" class="chap">
+            - <a href="#id1" class="xref">Link</a>
+            - <a href="#id2" class="xref">Link</a>
+            - <a href="#id3" class="xref">Link</a>
+            - <a href="#id4" class="xref">Link</a>
+          </div>
+        </div>
+
+
+        <div id="id3" class="chap">
+          <div id="id4" class="chap">
+            - <a href="#id1" class="xref">Link</a>
+            - <a href="#id2" class="xref">Link</a>
+            - <a href="#id3" class="xref">Link</a>
+            - <a href="#id4" class="xref">Link</a>
+          </div>
+        </div>
+
+        - <a href="#id1" class="xref">Link</a>
+        - <a href="#id2" class="xref">Link</a>
+        - <a href="#id3" class="xref">Link</a>
+        - <a href="#id4" class="xref">Link</a>
+      '''
+      expected = '''
+        - See 1 - See 2 - See 3 - See 4
+        Ch 1:
+        Ch 2: - See 1 - See 2 - See 3 - See 4
+        Ch 3:
+        Ch 4: - See 1 - See 2 - See 3 - See 4
+        - See 1 - See 2 - See 3 - See 4
+      '''
+      simple(css, html, expected)
+
+    it 'supports the x-target-is(id, "> .selector") guard function', () ->
+      css = '''
+        a[href] {
+          // content: '[LINK]';
+          content: x-target-is(attr(href), 'table')           '[TABLE]';
+          content: x-target-is(attr(href), 'figure')          '[FIGURE]';
+          content: x-target-is(attr(href), 'figure > figure') '[SUBFIGURE]';
+        }
+      '''
+      html = '''
+        <div id="id-nothing"></div>
+        <a href="#id-nothing">IGNORE</a>
+        <table id="id-table"></table>
+        <a href="#id-table">FAIL</a>
+        <figure id="id-figure"></figure>
+        <a href="#id-figure">FAIL</a>
+        <figure id="id-figure2"><figure id="id-subfigure"></figure></figure>
+        <a href="#id-subfigure">FAIL</a>
+        <a href="#id-figure2">FAIL</a>
+      '''
+      expected = '''
+        IGNORE
+        [TABLE]
+        [FIGURE]
+        [SUBFIGURE]
+        [FIGURE]
+      '''
+      simple(css, html, expected)
