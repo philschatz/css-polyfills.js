@@ -9,7 +9,6 @@
 
 <div id="mocha"></div>
 
-<script src="../node_modules/less/test/browser/less.js"></script>
 <script src="../node_modules/mocha/mocha.js"></script>
 
 <script src="../bower_components/requirejs/require.js"></script>
@@ -18,30 +17,28 @@
 <script src="../bower_components/blanket/src/loaders/blanket_cs.js"></script>
 <script src="../node_modules/grunt-blanket-mocha/support/mocha-blanket.js"></script>
 
+<script src="../config.js"></script>
+
 <script>
 //(function() {
 
-// Load the config
 require.config({
+  baseUrl: '../',
   paths: {
-    'css-polyfill':  '../src/css-polyfill',
-    'polyfill-path': '../src',
-    'coffee-script': '../bower_components/coffee-script/extras/coffee-script',
-    'underscore':    '../bower_components/underscore/underscore',
-    'jquery':        '../bower_components/jquery/jquery',
-    'chai':          '../bower_components/chai/chai',
-  },
-  shim: {
-    'underscore': {
-      exports: '_'
-    },
-  },
-
+    // 'test': './test',
+    // 'css-polyfill':  '../src/css-polyfill',
+    // 'polyfill-path': '../src',
+    // 'coffee-script': '../bower_components/coffee-script/extras/coffee-script',
+    // 'underscore':    '../bower_components/underscore/underscore',
+    // 'jquery':        '../bower_components/jquery/jquery',
+    'chai':          './bower_components/chai/chai',
+  }
 });
 
+blanket.options('timeout', 500);
 realMochaRun = mocha.run;
 mocha.setup('bdd');
-require(['cs!all-tests'], function(allTests) {
+require(['cs!test/all-tests'], function(allTests) {
 
   // from http://www.geekdave.com/2013/08/02/automated-code-coverage-enforcement-for-mocha-using-grunt-and-blanket/
   if(this.PHANTOMJS) {

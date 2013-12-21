@@ -1,0 +1,86 @@
+<html>
+
+<head>
+  <link rel="stylesheet" href="./bower_components/bootstrap/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="./bower_components/font-awesome/css/font-awesome.min.css"/>
+  <link rel="stylesheet/less" href="./site/main.less"/>
+</head>
+
+<body>
+
+
+<div id="try-it-modal" tabindex="-1" role="dialog" aria-labelledby="tryItLabel" aria-hidden="true">
+  <div class="modal-body">
+
+    <h3>Note: Make sure you run <code>./node_modules/.bin/r.js -o build.js</code> from the commandline first</h3>
+
+    <p>This is a sandbox which uses the built version of css-polyfills. Click the <strong>Run It!</strong> button to apply the CSS to the HTML.</p>
+    <table>
+      <tr>
+        <td class="column-edit-css">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">Edit the CSS:</h3>
+            </div>
+            <div class="panel-body">
+              <div class="css-editor"></div>
+            </div>
+          </div>
+
+        </td>
+        <td rowspan="2" class="column-preview">
+          <div class="run-reload">
+            <button class="btn btn-success run"><i class="fa fa-play"></i> Run it!</button>
+            <button class="btn btn-primary reload"><i class="fa fa-undo"></i> Reset</button>
+          </div>
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">Preview:
+              </h3>
+            </div>
+            <div class="panel-body">
+              <style></style>
+              <div class="preview"></div>
+            </div>
+          </div>
+
+        </td>
+      </tr>
+      <tr>
+        <td class="column-edit-html">
+          <div class="panel panel-default">
+            <div class="panel-heading">
+              <h3 class="panel-title">Edit the HTML:</h3>
+            </div>
+            <div class="panel-body">
+              <div class="html-editor"></div>
+            </div>
+          </div>
+        </td>
+      </tr>
+    </table>
+
+  </div>
+</div>
+
+
+
+<!-- **MUST** load this before requirejs -->
+<script src="./bower_components/coffee-script/extras/coffee-script.js"></script>
+
+<script src="./dist.js"></script>
+<script src="./config.js"></script>
+<script>
+// Configure the ace editor
+require.config({
+  paths: {
+    'ace': './bower_components/ace/lib/ace',
+  }
+});
+</script>
+<script src="./bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+
+<script type="text/coffeescript" src="./site/try-it.coffee"></script>
+
+</body>
+</html>

@@ -558,31 +558,19 @@ section::before { content: counter(section) ' '; }
 
 
 
-<script>
-  var require = {
-    //baseUrl: ,
-    paths: {
-      'polyfill-path': 'src',
-      'cs':            'bower_components/require-cs/cs',
-      'coffee-script': 'bower_components/coffee-script/extras/coffee-script',
-      'underscore':    'bower_components/underscore/underscore',
-      'jquery':        'bower_components/jquery/jquery',
-
-      ace: 'bower_components/ace/lib/ace'
-    },
-    shim: {
-      'underscore': {
-        exports: '_'
-      },
-    },
-    waitSeconds: 30
-  };
-</script>
-
 <script src="./node_modules/less/test/browser/less.js"></script>
 <script src="./bower_components/coffee-script/extras/coffee-script.js"></script>
 
 <script src="./bower_components/requirejs/require.js"></script>
+<script src="./config.js"></script>
+<script>
+// Configure the ace editor
+require.config({
+  paths: {
+    'ace': './bower_components/ace/lib/ace',
+  }
+});
+</script>
 <script src="./bower_components/jquery/jquery.min.js"></script>
 <script src="./bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 

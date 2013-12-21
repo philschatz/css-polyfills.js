@@ -35,7 +35,10 @@ require [
   cssSession.on  'change', () -> loadPreview()
   loadPreview()
 
-  $runReloadButton.on 'click', () ->
+  # For some reason this file is being loaded twice by requirejs so make
+  # sure the click handlers are only added once.
+  $runReloadButton.off('click.css-polyfills')
+  $runReloadButton.on 'click.css-polyfills', () ->
     $runReloadButton.toggleClass('trying-it')
 
     if $runReloadButton.hasClass('trying-it')
@@ -50,7 +53,8 @@ require [
       loadPreview()
 
 
-  $('.launch-it').on 'click', (evt) ->
+  $('.launch-it').off('click.css-polyfills')
+  $('.launch-it').on 'click.css-polyfills', (evt) ->
     $tryItExample = $(evt.target).closest('.try-it-example')
     cssText = $tryItExample.find('.css-editor code').text()
     htmlText = $tryItExample.find('.html-editor').text()

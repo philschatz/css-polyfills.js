@@ -1,7 +1,8 @@
 define [
   'underscore'
   'jquery'
-], (_, $) ->
+  'less'
+], (_, $, less) ->
 
 
   # Like a less.tree.Anonymous node but explicitly saying it contains a jQuery set.

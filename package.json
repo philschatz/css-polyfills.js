@@ -16,7 +16,8 @@
     "grunt-blanket-mocha": "git://github.com/philschatz/grunt-blanket-mocha.git#fixes-for-octokit.js",
     "chai": "~1.8.1",
     "mocha": "~1.14.0",
-    "http-server": "~0.5.5"
+    "http-server": "~0.5.5",
+    "requirejs": "~2.1.9"
   },
   "repository": {
     "type": "git",
