@@ -269,39 +269,51 @@ define [
   # NOTE: the default for `content()` is different for string-set (contents) than it is for target-text (before)
   contentsFuncBuilder = (defaultType) -> (env, typeNode) ->
     typeNode = typeNode?.eval(env)
-    console.warn("ERROR: content(): expects a Keyword") if typeNode not instanceof less.tree.Keyword
+    if (not typeNode) or typeNode instanceof less.tree.Keyword
 
-    # Return the contents of the current node **without** the pseudo elements
-    getContents = () =>
-      # To ignore the pseudo elements
-      # Clone the node and remove the pseudo elements.
-      # Then run .text().
-      $el = env.helpers.$context.clone()
-      $el.children('.js-polyfill-pseudo').remove()
-      # if $el.is('.js-polyfill-evaluated')
-      #   return $el.text()
-      # else return null
-      return $el.text()
+      # Return the contents of the current node **without** the pseudo elements
+      getContents = () =>
+        # To ignore the pseudo elements
+        # Clone the node and remove the pseudo elements.
+        # Then run .text().
+        $el = env.helpers.$context.clone()
+        $el.children('.js-polyfill-pseudo').remove()
+        # if $el.is('.js-polyfill-evaluated')
+        #   return $el.text()
+        # else return null
+        return $el.text()
 
-    type = typeNode?.value or defaultType
-    switch type
-      when 'contents'
-        val = getContents()
-      when 'first-letter' then val = getContents()?.trim()[0] # trim because 1st letter may be a space
-      when 'before'
-        $pseudos = env.helpers.$context.children('.js-polyfill-pseudo-before')
-        if $pseudos.is('.js-polyfill-evaluated')
-          val = $pseudos.text()
-      when 'after'
-        $pseudos = env.helpers.$context.children('.js-polyfill-pseudo-after')
-        if $pseudos.is('.js-polyfill-evaluated')
-          val = $pseudos.text()
-      else
-        val = typeNode.toCSS({})
-        console.warn "ERROR: invalid argument to content(). argument=[#{val}]"
-        val = ''
+      type = typeNode?.value or defaultType
+      switch type
+        when 'contents'
+          val = getContents()
+        when 'first-letter' then val = getContents()?.trim()[0] # trim because 1st letter may be a space
+        when 'before'
+          $pseudos = env.helpers.$context.children('.js-polyfill-pseudo-before')
+          if $pseudos.is('.js-polyfill-evaluated')
+            val = $pseudos.text()
+        when 'after'
+          $pseudos = env.helpers.$context.children('.js-polyfill-pseudo-after')
+          if $pseudos.is('.js-polyfill-evaluated')
+            val = $pseudos.text()
+        else
+          val = typeNode.toCSS({})
+          console.warn "ERROR: invalid argument to content(). argument=[#{val}]"
+          val = ''
 
-    return val
+      return val
+
+    else if typeNode instanceof less.tree.Quoted
+      selector = typeNode.value
+      # TODO: add support for pseudoselectors (including complex ones like ::outside::before)
+      $els = env.helpers.$context.find(selector)
+      # If nothing is matched then do not resolve (so another rule is matched)
+      return if not $els[0]
+
+      return $els.text()
+
+    else
+      console.warn("ERROR: content(): expects a Keyword or a Selector String")
 
 
 

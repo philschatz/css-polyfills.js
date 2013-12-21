@@ -137,6 +137,7 @@ define [
                 if understood == 'RULE_COMPLETED'
                   somethingChanged += 1
                   $node.attr("data-js-polyfill-rule-#{ruleName}", 'completed')
+              # FIXME: This break should only run when `understood==truthy`
               break
 
           for ruleName of understoodRules
