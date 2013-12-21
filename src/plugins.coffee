@@ -338,6 +338,28 @@ define [
         # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
         return null
 
+      'x-target-is': (env, targetIdNode, selectorNode=null) ->
+        href = targetIdNode.eval(env).value
+        selectorNode = selectorNode.eval(env)
+        console.warn("ERROR: x-target-is() expects a Quoted") if selectorNode not instanceof less.tree.Quoted
+
+        # Mark the target as interesting if it is not already
+        if not env.helpers.markInterestingByHref(href)
+          # It has already been marked
+          targetEnv = env.helpers.interestingByHref(href)
+          $el = targetEnv.helpers.$context
+          # return the empty string if the selector matches an element
+          # (so the guard can be used in `content:`)
+          # Otherwise, return null (not falsy!!!) (Cannot be computed yet)
+          if $el.is(selectorNode.value)
+            return ''
+          else
+            return null
+
+        # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
+        return null
+
+
 
   class StringSet
     functions:

@@ -222,12 +222,13 @@ define [
     it 'does not match the rule when content("> .selector") is null', () ->
       css = '''
         a[href] {
+          content: 'PASSED';
           content: target-text(attr(href), content('> .title'));
         }
       '''
       html = '''
         <div id="id123">[Some Text]</div>
-        <a href="#id123">PASSED</a>
+        <a href="#id123">FAIL</a>
       '''
       expected = '''
         [Some Text]

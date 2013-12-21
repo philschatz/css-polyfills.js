@@ -110,7 +110,7 @@ define [
               name = name.join('') if name instanceof Array
               return rule.name == name
 
-            for autogenRule in _.filter(autogenRules, ruleFilter).reverse()
+            for autogenRule, i in _.filter(autogenRules, ruleFilter).reverse()
 
               ruleName = autogenRule.name
               # As of https://github.com/less/less.js/commit/ebdadaedac2ba2be377ae190060f9ca8086253a4
@@ -129,6 +129,10 @@ define [
               if $node.is("[data-js-polyfill-rule-#{ruleName}='completed']")
                 continue
 
+              # When evaluating `content:`, only walk up the rules if the current rule
+              # is not possible to compute. If it requires a lookup then somethingChanged
+              # will increment, so keep trying.
+              beforeSomethingChanged = somethingChanged
               # update the env
               understood = rule.func(env, ruleValNode)
               if understood
@@ -137,8 +141,11 @@ define [
                 if understood == 'RULE_COMPLETED'
                   somethingChanged += 1
                   $node.attr("data-js-polyfill-rule-#{ruleName}", 'completed')
-              # FIXME: This break should only run when `understood==truthy`
-              break
+
+                break
+              # Do not give up on this rule yet. Something changed.
+              if beforeSomethingChanged != somethingChanged
+                break
 
           for ruleName of understoodRules
             if not $node.attr("data-js-polyfill-rule-#{ruleName}")
