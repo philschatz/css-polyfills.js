@@ -102,9 +102,22 @@ define [
           for rule in @rules
             # Loop through the rules in reverse order.
             # Once a rule is "understood" then we can skip processing other rules
-            for autogenRule in _.filter(autogenRules, (r) -> rule.name == r.name).reverse()
+            ruleFilter = (r) ->
+              # As of https://github.com/less/less.js/commit/ebdadaedac2ba2be377ae190060f9ca8086253a4
+              # a Rule name is an Array so join them together.
+              # This is why less.js is currently pinned to #4fd970426662600ecb41bced71206aece5a88ee4
+              name = r.name
+              name = name.join('') if name instanceof Array
+              return rule.name == name
+
+            for autogenRule in _.filter(autogenRules, ruleFilter).reverse()
 
               ruleName = autogenRule.name
+              # As of https://github.com/less/less.js/commit/ebdadaedac2ba2be377ae190060f9ca8086253a4
+              # a Rule name is an Array so join them together.
+              # This is why less.js is currently pinned to #4fd970426662600ecb41bced71206aece5a88ee4
+              ruleName = ruleName.join('') if ruleName instanceof Array
+
               ruleValNode = autogenRule.value
               continue if not ruleName # Skip comments and such
 
