@@ -173,6 +173,9 @@ define [
           # by returning the original less.tree.Call
           if not ret?
             return new less.tree.Call(funcName, _.toArray(arguments))
+          else if ret.toCSS
+            # If the returned node is already a `less.tree` Node then return it.
+            return ret
           else if ret instanceof Array
             # HACK: Use the Less AST so we do not need to include 1 file just to not reuse a similar class
             return new less.tree.ArrayTreeNode(ret)
