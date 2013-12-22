@@ -40,18 +40,22 @@ define [
 
     autogenClassesToString = (autogenClasses) ->
       cssStrs = []
+      env = new less.tree.evalEnv()
+
       for clsName, cls of autogenClasses
-        canonicalizedStrs = _.map cls.selector, (sel) -> sel.toCSS({})
+        canonicalizedStrs = _.map cls.selector, (sel) -> sel.toCSS(env)
         cssStrs.push(".#{clsName} { /* BASED_ON: #{canonicalizedStrs.join('|')} */")
         for rule in cls.rules
-          cssStrs.push("  #{rule.toCSS({})}")
+          cssStrs.push("  #{rule.toCSS(env)}")
         cssStrs.push("}")
       return cssStrs.join('\n')
 
     autogenClasses = {}
 
     changeLessTree = (plugins) ->
-      env = {plugins: plugins}
+      env = new less.tree.evalEnv()
+      env.plugins = plugins
+
       lessTree.toCSS(env)
       for plugin in plugins
         _.extend(autogenClasses, plugin.autogenClasses)
@@ -81,14 +85,14 @@ define [
 
     # Perform cleanup on the HTML:
     # removing classes, attributes,
-    discardedClasses = [
-      'js-polyfill-pseudo-before'
-      'js-polyfill-pseudo-after'
-      'js-polyfill-pseudo-outside'
-    ]
+    # discardedClasses = [
+    #   'js-polyfill-pseudo-before'
+    #   'js-polyfill-pseudo-after'
+    #   'js-polyfill-pseudo-outside'
+    # ]
 
-    # add '.' and ',' for the find, but a space for the classes to remove
-    $root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
+    # # add '.' and ',' for the find, but a space for the classes to remove
+    # $root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
 
     # return the converted CSS
     cb?(null, autogenClassesToString(autogenClasses))

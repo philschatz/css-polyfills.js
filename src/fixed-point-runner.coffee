@@ -64,9 +64,10 @@ define [
     tick: ($interesting) ->
       somethingChanged = 0
       # env is a LessEnv (passed to `lessNode.eval()`) so it needs to contain a .state and .helpers
-      env =
-        state: {} # plugins will add `counters`, `strings`, `buckets`, etc
-        helpers:
+      env = new less.tree.evalEnv()
+
+      env.state = {} # plugins will add `counters`, `strings`, `buckets`, etc
+      env.helpers =
           # $context: null
           interestingByHref: (href) =>
             console.error 'BUG: href must start with a # character' if '#' != href[0]
@@ -203,7 +204,7 @@ define [
         'js-polyfill-target'
       ]
       # add '.' and ',' for the find, but a space for the classes to remove
-      # @$root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
+      @$root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
 
     run: () ->
       @setUp()
