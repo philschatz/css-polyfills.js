@@ -442,8 +442,8 @@ define [
         # console.log("Not finished evaluating yet: #{val.name}")
         return null
       else
-        console.warn("ERROR: Pushing something unknown. [#{val.value}]")
-        ret.push(val.value)
+        console.warn("ERROR: Attempting to push something unknown. [#{val.value}]")
+        return null
     return ret
 
   class ContentSet
