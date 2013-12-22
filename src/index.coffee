@@ -2,11 +2,12 @@ define [
   'underscore'
   'jquery'
   'less'
+  'eventemitter2'
   'cs!polyfill-path/less-converters'
   'cs!polyfill-path/plugins'
   'cs!polyfill-path/extras'
   'cs!polyfill-path/fixed-point-runner'
-], (_, $, less, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner) ->
+], (_, $, less, EventEmitter, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner) ->
 
 
   PseudoExpander    = LESS_CONVERTERS.PseudoExpander
@@ -22,7 +23,7 @@ define [
   ElementExtras = EXTRAS.ElementExtras
 
 
-  class CSSPolyfills
+  class CSSPolyfills extends EventEmitter
 
     @DEFAULT_PLUGINS = [
         new MoveTo()
@@ -39,6 +40,34 @@ define [
       @plugins.concat(additionalPlugins) if additionalPlugins
 
     runTree: ($root, lessTree, cb=null) ->
+      @emit('start')
+
+      bindAll = (emitter, eventNames) =>
+        _.each eventNames, (name) =>
+          emitter.on name, () => @emit(name, arguments...)
+
+
+      # logger = (eventNames) =>
+      #   _.each eventNames, (name) =>
+      #     @on name, (vals...) => console.log "DEBUG: #{name}: {#{vals.join('}, {')}}"
+
+      # logger [
+      #   'selector.start'
+      #   'selector.end'
+      #   'runner.start'
+      #   'runner.end'
+      #   'tick.start'
+      #   'tick.end'
+      # ]
+
+      startTime = new Date()
+      @on 'selector.end', (selector, matches) ->
+        if 0 == matches
+          console.log "DEBUG: CSS Coverage. Unmatched selector [#{selector}]"
+
+      @on 'tick.start', (count) -> console.log "DEBUG: Starting TICK #{count}"
+      @on 'end',             () -> console.log "DEBUG: CSSPolyfills Done. Took #{new Date() - startTime}"
+
 
       # Run the plugins in multiple phases because move-to manipulates the DOM
       # and jQuery.data() disappears when the element detaches from the DOM
@@ -78,11 +107,24 @@ define [
 
       runFixedPoint = (plugins) ->
         fixedPointRunner = new FixedPointRunner($root, plugins, autogenClasses)
+
+        bindAll fixedPointRunner, [
+          'runner.start'
+          'runner.end'
+          'tick.start'
+          'tick.end'
+        ]
         fixedPointRunner.run()
         return fixedPointRunner
 
 
-      changeLessTree [new PseudoExpander($root)]
+      pseudoExpander = new PseudoExpander($root)
+      bindAll pseudoExpander, [
+        'selector.start'
+        'selector.end'
+      ]
+
+      changeLessTree([pseudoExpander])
 
       canonicalizer = new CSSCanonicalizer($root, autogenClasses)
       canonicalizer.run()
@@ -104,6 +146,8 @@ define [
 
       # return the converted CSS
       cb?(null, autogenClassesToString(autogenClasses))
+
+      @emit('end')
 
     run: ($root, cssStyle, cb=null) ->
 
