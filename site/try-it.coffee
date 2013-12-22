@@ -4,7 +4,7 @@ require [
   'ace/ace'
   'ace/mode/less'
   'ace/mode/html'
-], ($, CSSPolyfill, ace, CSSMode, HTMLMode) ->
+], ($, CSSPolyfills, ace, CSSMode, HTMLMode) ->
 
   # initModal
   $tryItModal = $('#try-it-modal')
@@ -43,7 +43,8 @@ require [
 
     if $runReloadButton.hasClass('trying-it')
       cssStyle = cssSession.getValue()
-      CSSPolyfill $preview, cssStyle, (err, newCSS) ->
+      p = new CSSPolyfills()
+      p.run $preview, cssStyle, (err, newCSS) ->
         if err
           alert("Looks like the CSS is not well-formed. Please correct it (maybe a missing semicolon?) Details: #{err}")
         else

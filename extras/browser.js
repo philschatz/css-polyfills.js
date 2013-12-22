@@ -318,9 +318,10 @@ function loadStyles(newVars) {
                     }
 
 
-                    require(['cs!polyfill-path/index'], function(CSSPolyfill) {
+                    require(['cs!polyfill-path/index'], function(CSSPolyfills) {
                         var cssStr = cssAST.toCSS(less);
-                        CSSPolyfill($('html'), cssStr, function(err, css) {
+                        var p = new CSSPolyfills();
+                        p.runTree($('html'), cssStr, function(err, css) {
                             style.type = 'text/css';
                             if (style.styleSheet) {
                                 style.styleSheet.cssText = css;
@@ -668,9 +669,10 @@ less.refresh = function (reload, newVars) {
         if (e) {
             return error(e, sheet.href);
         }
-        require(['cs!polyfill-path/index'], function(CSSPolyfill) {
+        require(['cs!polyfill-path/index'], function(CSSPolyfills) {
             var cssStr = root.toCSS(less);
-            CSSPolyfill($('html'), cssStr, function(err, cssStr) {
+            var p = new CSSPolyfills();
+            p.run($('html'), cssStr, function(err, cssStr) {
                 createCSS(cssStr, sheet, env.lastModified);
             });
         });
