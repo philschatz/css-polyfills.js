@@ -321,7 +321,7 @@ function loadStyles(newVars) {
                     require(['cs!polyfill-path/index'], function(CSSPolyfills) {
                         var cssStr = cssAST.toCSS(less);
                         var p = new CSSPolyfills();
-                        p.runTree($('html'), cssStr, function(err, css) {
+                        p.run($('html'), cssStr, function(err, css) {
                             style.type = 'text/css';
                             if (style.styleSheet) {
                                 style.styleSheet.cssText = css;
