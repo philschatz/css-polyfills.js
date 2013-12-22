@@ -48,6 +48,22 @@ Some of the features are outlined below. The project has support for:
 - `x-sort(bucket, 'optional-selector')`: Used around the `pending(...)` function to sort the elements (like for an alphabetized Glossary or Index)
 - `x-parent(...)`: Used in conjunction with `attr(..)` or `content(..)` to look up the attribute or contents of a parent element
 
+# How to Use on a Webpage
+
+It is easy to have the CSS Polyfills run on CSS files in the browser. Just add the following tags in `<head>`:
+
+    <!-- You can include the styles inline... -->
+    <style type="text/x-css-polyfills">
+      /* Include your styles here */
+    </style>
+
+    <!-- OR, link to a CSS file -->
+    <link rel="stylesheet/css-polyfills" type="text/css" href="styles.css" />
+
+    <script src="dist.js" type="text/javascript"></script>
+
+See [examples/browser.html](examples/browser.html) for an example.
+
 
 # Examples
 

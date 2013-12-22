@@ -1,9 +1,9 @@
 <html>
 
 <head>
-  <link rel="stylesheet" href="./bower_components/bootstrap/dist/css/bootstrap.min.css"/>
-  <link rel="stylesheet" href="./bower_components/font-awesome/css/font-awesome.min.css"/>
-  <link rel="stylesheet/less" href="./site/main.less"/>
+  <link rel="stylesheet" href="../bower_components/bootstrap/dist/css/bootstrap.min.css"/>
+  <link rel="stylesheet" href="../bower_components/font-awesome/css/font-awesome.min.css"/>
+  <link rel="stylesheet/less" href="../site/main.less"/>
 </head>
 
 <body>
@@ -66,21 +66,22 @@
 
 
 <!-- **MUST** load this before requirejs -->
-<script src="./bower_components/coffee-script/extras/coffee-script.js"></script>
+<script src="../bower_components/coffee-script/extras/coffee-script.js"></script>
 
-<script src="./dist.js"></script>
-<script src="./config.js"></script>
+<script src="../dist.js"></script>
+<script src="../config.js"></script>
 <script>
 // Configure the ace editor
 require.config({
+  baseUrl: '../',
   paths: {
-    'ace': './bower_components/ace/lib/ace',
+    'ace': 'bower_components/ace/lib/ace',
   }
 });
 </script>
-<script src="./bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
+<script src="../bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 
-<script type="text/coffeescript" src="./site/try-it.coffee"></script>
+<script type="text/coffeescript" src="../site/try-it.coffee"></script>
 
 </body>
 </html>

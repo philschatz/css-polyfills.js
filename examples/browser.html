@@ -1,0 +1,36 @@
+<html>
+
+<head>
+  <!-- <link rel="stylesheet/css-polyfills" href="./browser-example.css"/> -->
+  <style type="text/x-css-polyfills">
+
+    .move-me {
+      move-to: bucket;
+      content: 'This should now be below the "Bucket" heading signifying the Polyfill code ran successfully';
+    }
+    .pending-bucket { content: pending(bucket); }
+
+  </style>
+
+</head>
+
+<body>
+
+<p>This file shows how easy it is to include the CSS Polyfills code on your website.</p>
+<p>To use it just follow the instructions in the README or check the source of this page</p>
+
+
+<hr/>
+
+<div class="move-me">This is a bucket that should be moved. If you are reading this then you should build dist.js (see the README)</div>
+
+<h3>Bucket:</h3>
+
+<div class="pending-bucket"></div>
+
+
+<script src="../dist.js"></script>
+<script src="../extras/browser.js"></script>
+
+</body>
+</html>
