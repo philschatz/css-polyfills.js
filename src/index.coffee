@@ -37,7 +37,7 @@ define [
 
     constructor: (additionalPlugins=null) ->
       @plugins = _.clone(CSSPolyfills.DEFAULT_PLUGINS)
-      @plugins.concat(additionalPlugins) if additionalPlugins
+      @plugins = @plugins.concat(additionalPlugins) if additionalPlugins
 
     runTree: ($root, lessTree, cb=null) ->
       @emit('start')
@@ -151,8 +151,7 @@ define [
       canonicalizer.run()
       autogenClasses = canonicalizer.newAutogenClasses
 
-
-      runFixedPoint(CSSPolyfills.DEFAULT_PLUGINS)
+      runFixedPoint(@plugins)
 
       # Perform cleanup on the HTML:
       # removing classes, attributes,
