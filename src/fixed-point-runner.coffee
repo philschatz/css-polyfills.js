@@ -54,7 +54,8 @@ define [
 
 
     lookupAutogenClass: ($node) ->
-      classes = $node.attr('class').split(' ')
+      classes = $node.attr('class') or ''
+      classes = classes.split(' ')
       foundClass = null
       for cls in classes
         if /^js-polyfill-autoclass-/.test(cls)
@@ -114,7 +115,7 @@ define [
               # This is why less.js is currently pinned to #4fd970426662600ecb41bced71206aece5a88ee4
               name = r.name
               name = name.join('') if name instanceof Array
-              return rule.name == name
+              return (rule.name == name) or ('*' == rule.name)
 
             for autogenRule, i in _.filter(autogenRules, ruleFilter).reverse()
 
@@ -140,7 +141,11 @@ define [
               # will increment, so keep trying.
               beforeSomethingChanged = somethingChanged
               # update the env
-              understood = rule.func(env, ruleValNode)
+              if '*' == rule.name
+                understood = rule.func(env, ruleName, ruleValNode)
+              else
+                understood = rule.func(env, ruleValNode)
+
               if understood
                 understoodRules[ruleName] = true
                 $node.attr("data-js-polyfill-rule-#{ruleName}", 'evaluated')
