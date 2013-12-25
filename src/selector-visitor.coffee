@@ -1,7 +1,11 @@
-# Add `:nth-of-type()` to jQuery
-define ['jquery', 'polyfill-path/jquery-selectors'], () ->
+define [
+  'eventemitter2'
+  # Add `:nth-of-type()` to jQuery
+  'jquery'
+  'polyfill-path/jquery-selectors'
+], (EventEmitter) ->
 
-  class LessVisitor
+  class LessVisitor extends EventEmitter
     constructor: (@$root) ->
       @_visitor = new less.tree.visitor(@)
       @_frames = []
@@ -92,9 +96,8 @@ define ['jquery', 'polyfill-path/jquery-selectors'], () ->
         selectorStr = selectorStr.join('')
         # selectorStr = selector.domSelector.toCSS({})
 
-        console.log("DEBUG: Searching for {#{selectorStr}}")
+        @emit('selector.start', selectorStr)
         $els = @$root.find(selectorStr)
-        # FIXME: Instead of removing pseudoselectors after selection, annotate the selectorStr to include `:not(.js-polyfill-pseudo)` after every element
-        console.log("DEBUG: Found #{$els.length}")
+        @emit('selector.end', selectorStr, $els.length)
 
         @operateOnElements(frame, $els, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector)

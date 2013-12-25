@@ -4,7 +4,7 @@ require [
   'ace/ace'
   'ace/mode/less'
   'ace/mode/html'
-], ($, CSSPolyfill, ace, CSSMode, HTMLMode) ->
+], ($, CSSPolyfills, ace, CSSMode, HTMLMode) ->
 
   # initModal
   $tryItModal = $('#try-it-modal')
@@ -35,12 +35,16 @@ require [
   cssSession.on  'change', () -> loadPreview()
   loadPreview()
 
-  $runReloadButton.on 'click', () ->
+  # For some reason this file is being loaded twice by requirejs so make
+  # sure the click handlers are only added once.
+  $runReloadButton.off('click.css-polyfills')
+  $runReloadButton.on 'click.css-polyfills', () ->
     $runReloadButton.toggleClass('trying-it')
 
     if $runReloadButton.hasClass('trying-it')
       cssStyle = cssSession.getValue()
-      CSSPolyfill $preview, cssStyle, (err, newCSS) ->
+      p = new CSSPolyfills()
+      p.run $preview, cssStyle, (err, newCSS) ->
         if err
           alert("Looks like the CSS is not well-formed. Please correct it (maybe a missing semicolon?) Details: #{err}")
         else
@@ -50,7 +54,8 @@ require [
       loadPreview()
 
 
-  $('.launch-it').on 'click', (evt) ->
+  $('.launch-it').off('click.css-polyfills')
+  $('.launch-it').on 'click.css-polyfills', (evt) ->
     $tryItExample = $(evt.target).closest('.try-it-example')
     cssText = $tryItExample.find('.css-editor code').text()
     htmlText = $tryItExample.find('.html-editor').text()

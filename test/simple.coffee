@@ -1,4 +1,4 @@
-define ['jquery', 'chai', 'cs!polyfill-path/index'], ($, chai, CSSPolyfill) ->
+define ['jquery', 'chai', 'cs!polyfill-path/index'], ($, chai, CSSPolyfills) ->
 
   assert = chai.assert
   expect = chai.expect
@@ -16,6 +16,7 @@ define ['jquery', 'chai', 'cs!polyfill-path/index'], ($, chai, CSSPolyfill) ->
     $content = $('<div></div>').appendTo('body')
     $content.append(html)
 
-    CSSPolyfill($content, css)
+    p = new CSSPolyfills()
+    p.run($content, css)
     $content.remove()
     strExpect(expected, $content.text())

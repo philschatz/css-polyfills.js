@@ -22,18 +22,18 @@ define [
     constructor: (@selector, @rules) ->
 
 
-  # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
-  # Use a "custom" element name so CSS does not "pick these up" accidentally
-  # TODO: have a pass at the end that converts them to <span> elements or something.
-  PSEUDO_ELEMENT_NAME = 'polyfillpseudo'
-
   class PseudoExpander extends AbstractSelectorVisitor
     # Modifies the AST so it should run pre-eval
     isPreEvalVisitor: true
     isPreVisitor: false
     isReplacing: false
 
-    constructor: (root, @autogenClasses={}) -> super(arguments...)
+    # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
+    PSEUDO_ELEMENT_NAME: 'span' # 'polyfillpseudo'
+
+
+    constructor: (root, @autogenClasses={}) ->
+      super(arguments...)
 
     operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector, originalSelector) ->
       if not pseudoSelector.elements.length
@@ -48,12 +48,12 @@ define [
         for pseudoNode in pseudoSelector.elements
           pseudoName = pseudoNode.value.replace('::', ':')
 
-          simpleExpand = (op, pseudoName) ->
+          simpleExpand = (op, pseudoName) =>
             # See if the pseudo element exists.
             # If not, add it to the DOM
             cls         = "js-polyfill-pseudo-#{pseudoName}"
             $needsNew   = $context.not($context.has(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}"))
-            $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+            $needsNew[op]("<#{@PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{@PSEUDO_ELEMENT_NAME}>")
             # Update the context to be current pseudo element
             $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
 
@@ -73,7 +73,7 @@ define [
               $needsNew   = $context.not $context.filter (node) ->
                               $parent = $(node).parent()
                               return $parent.hasClass(cls)
-              $needsNew[op]("<#{PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{PSEUDO_ELEMENT_NAME}>")
+              $needsNew[op]("<#{@PSEUDO_ELEMENT_NAME} class='js-polyfill-pseudo #{cls}'></#{@PSEUDO_ELEMENT_NAME}>")
               # Update the context to be current pseudo element
               $context = $context.parent()
 

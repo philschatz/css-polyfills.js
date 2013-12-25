@@ -78,6 +78,7 @@ h1 { string-set: chapter-title content(); }
 
 <h2>Sections</h2>
 <ul>
+  <li><a href="#section-browser-usage">How to Use in a Browser</a></li>
   <li><a href="#section-moving">Moving Content</a></li>
   <li><a href="#section-target-counters">Looking up Cross-referenced text and counters</a></li>
   <li><a href="#section-elements">Making HTML elements in CSS</a></li>
@@ -88,6 +89,20 @@ h1 { string-set: chapter-title content(); }
 </ul>
 
 <hr/>
+
+<h2 id="section-browser-usage">How to Use in a Browser</h2>
+<p>Running in a browser is the easiest way to get started and good for testing out the CSS.</p>
+
+<p>Include the stylesheet with the <code>rel</code> set to <code>"stylesheet/css-polyfills"</code>:
+<pre>&lt;link rel="stylesheet/css-polyfills"
+      type="text/css"
+      href="styles.css" /></pre>
+
+<p>Then use the <code>dist.js</code> built in the main directory, and include it in your page, like so:</p>
+<pre>&lt;script src="dist.js" type="text/javascript">&lt;/script></pre>
+
+<p>See <a href="examples/browser.html">examples/browser.html</a> for an example.</p>
+
 
 <h2 id="section-moving">Moving Content</h2>
 <p>Moving content in the DOM is simple using the <code class="css">move-to: bucket-name;</code> and <code class="css">content: pending(bucket-name);</code> rules defined in <a href="http://www.w3.org/TR/css3-content/#moving">CSS3 Generated and Replaced Content Module</a>.</p>
@@ -558,31 +573,19 @@ section::before { content: counter(section) ' '; }
 
 
 
-<script>
-  var require = {
-    //baseUrl: ,
-    paths: {
-      'polyfill-path': 'src',
-      'cs':            'bower_components/require-cs/cs',
-      'coffee-script': 'bower_components/coffee-script/extras/coffee-script',
-      'underscore':    'bower_components/underscore/underscore',
-      'jquery':        'bower_components/jquery/jquery',
-
-      ace: 'bower_components/ace/lib/ace'
-    },
-    shim: {
-      'underscore': {
-        exports: '_'
-      },
-    },
-    waitSeconds: 30
-  };
-</script>
-
 <script src="./node_modules/less/test/browser/less.js"></script>
 <script src="./bower_components/coffee-script/extras/coffee-script.js"></script>
 
 <script src="./bower_components/requirejs/require.js"></script>
+<script src="./config.js"></script>
+<script>
+// Configure the ace editor
+require.config({
+  paths: {
+    'ace': './bower_components/ace/lib/ace',
+  }
+});
+</script>
 <script src="./bower_components/jquery/jquery.min.js"></script>
 <script src="./bower_components/bootstrap/dist/js/bootstrap.min.js"></script>
 

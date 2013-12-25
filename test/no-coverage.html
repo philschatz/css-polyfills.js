@@ -1,0 +1,43 @@
+<html>
+
+<head>
+  <link rel="stylesheet" href="../node_modules/mocha/mocha.css"/>
+</head>
+
+<body>
+<p>This is a test page. Mocha tests should run below.</p>
+
+<div id="mocha"></div>
+
+<script src="../node_modules/mocha/mocha.js"></script>
+<script src="../bower_components/requirejs/require.js"></script>
+<script src="../config.js"></script>
+
+<script>
+//(function() {
+
+require.config({
+  baseUrl: '../',
+  paths: {
+    'chai':          './bower_components/chai/chai',
+  }
+});
+
+mocha.setup('bdd');
+require(['cs!test/all-tests'], function(allTests) {
+
+  mocha.checkLeaks();
+  mocha.globals(['jQuery']);
+
+  // Needs to run once this file is loaded
+  mocha.run();
+});
+
+
+//})();
+</script>
+
+
+
+</body>
+</html>

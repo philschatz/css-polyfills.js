@@ -1,7 +1,8 @@
 define [
   'underscore'
   'jquery'
-], (_, $) ->
+  'eventemitter2'
+], (_, $, EventEmitter) ->
 
 
   # There is a bit of ugliness with the `data-js-polyfill-rule-#{ruleName}` attributes.
@@ -30,7 +31,7 @@ define [
 
 
 
-  return class FixedPointRunner
+  return class FixedPointRunner extends EventEmitter
     # plugins: []
     # $root: jQuery(...)
     # autogenClasses: {}
@@ -38,6 +39,9 @@ define [
     # rules: {}
 
     constructor: (@$root, @plugins, @autogenClasses) ->
+      # Enable wildcards in the EventEmitter
+      super {wildcard: true}
+
       @squirreledEnv = {} # id -> env map. Needs to persist across runs because the target may occur **after** the element that looks it up
       @functions = {}
       # Rules must be evaluated in Plugin order.
@@ -50,7 +54,8 @@ define [
 
 
     lookupAutogenClass: ($node) ->
-      classes = $node.attr('class').split(' ')
+      classes = $node.attr('class') or ''
+      classes = classes.split(' ')
       foundClass = null
       for cls in classes
         if /^js-polyfill-autoclass-/.test(cls)
@@ -62,11 +67,13 @@ define [
 
 
     tick: ($interesting) ->
+      @emit('tick.start', $interesting.length)
       somethingChanged = 0
       # env is a LessEnv (passed to `lessNode.eval()`) so it needs to contain a .state and .helpers
-      env =
-        state: {} # plugins will add `counters`, `strings`, `buckets`, etc
-        helpers:
+      env = new less.tree.evalEnv()
+
+      env.state = {} # plugins will add `counters`, `strings`, `buckets`, etc
+      env.helpers =
           # $context: null
           interestingByHref: (href) =>
             console.error 'BUG: href must start with a # character' if '#' != href[0]
@@ -108,7 +115,7 @@ define [
               # This is why less.js is currently pinned to #4fd970426662600ecb41bced71206aece5a88ee4
               name = r.name
               name = name.join('') if name instanceof Array
-              return rule.name == name
+              return (rule.name == name) or ('*' == rule.name)
 
             for autogenRule, i in _.filter(autogenRules, ruleFilter).reverse()
 
@@ -134,7 +141,11 @@ define [
               # will increment, so keep trying.
               beforeSomethingChanged = somethingChanged
               # update the env
-              understood = rule.func(env, ruleValNode)
+              if '*' == rule.name
+                understood = rule.func(env, ruleName, ruleValNode)
+              else
+                understood = rule.func(env, ruleValNode)
+
               if understood
                 understoodRules[ruleName] = true
                 $node.attr("data-js-polyfill-rule-#{ruleName}", 'evaluated')
@@ -160,10 +171,13 @@ define [
           targetEnv.helpers.$context = $node
           @squirreledEnv[$node.attr('id')] = targetEnv
 
+      @emit('tick.end', somethingChanged)
       return somethingChanged
 
 
     setUp: () ->
+      @emit('runner.start')
+
       # Register all the functions with less.tree.functions
       for funcName, func of @functions
         # Wrap all the functions and attach them to `less.tree.functions`
@@ -173,6 +187,9 @@ define [
           # by returning the original less.tree.Call
           if not ret?
             return new less.tree.Call(funcName, _.toArray(arguments))
+          else if ret.toCSS
+            # If the returned node is already a `less.tree` Node then return it.
+            return ret
           else if ret instanceof Array
             # HACK: Use the Less AST so we do not need to include 1 file just to not reuse a similar class
             return new less.tree.ArrayTreeNode(ret)
@@ -200,7 +217,9 @@ define [
         'js-polyfill-target'
       ]
       # add '.' and ',' for the find, but a space for the classes to remove
-      # @$root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
+      @$root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
+
+      @emit('runner.end')
 
     run: () ->
       @setUp()
@@ -209,11 +228,7 @@ define [
       $interesting = @$root.find('.js-polyfill-autoclass, .js-polyfill-interesting')
       $interesting.addClass('js-polyfill-interesting')
 
-      ticks = 0
-      console.log("DEBUG: FixedPointRunner TICK #{ticks}")
       while changes = @tick($interesting) # keep looping while somethingChanged
-        ticks++
-        console.log("DEBUG: FixedPointRunner TICK #{ticks}. changes: #{changes}")
         $interesting = @$root.find('.js-polyfill-interesting')
 
       @done()

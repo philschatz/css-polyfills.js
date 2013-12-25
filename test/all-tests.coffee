@@ -1,10 +1,10 @@
 define [
-  'cs!./simple'
-  'cs!./website.spec'
-  'cs!./counters.spec'
-  'cs!./move-to.spec'
-  'cs!./string-set.spec'
-  'cs!./impossible.spec'
+  'cs!test/simple'
+  'cs!test/website.spec'
+  'cs!test/counters.spec'
+  'cs!test/move-to.spec'
+  'cs!test/string-set.spec'
+  'cs!test/impossible.spec'
 ], (simple) ->
 
 
