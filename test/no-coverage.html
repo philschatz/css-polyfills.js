@@ -23,7 +23,6 @@ require.config({
   }
 });
 
-realMochaRun = mocha.run;
 mocha.setup('bdd');
 require(['cs!test/all-tests'], function(allTests) {
 
@@ -32,7 +31,6 @@ require(['cs!test/all-tests'], function(allTests) {
 
   // Needs to run once this file is loaded
   mocha.run();
-  realMochaRun();
 });
 
 
