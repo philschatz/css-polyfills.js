@@ -97,6 +97,8 @@ define [
 
       for node in $interesting
         $node = $(node)
+        # If this is false after looping over the rules then remove the interesting class
+        somethingNotCompleted = false
 
         env.helpers.$context = $node
         autoClass = @lookupAutogenClass($node)
@@ -146,6 +148,7 @@ define [
               else
                 understood = rule.func(env, ruleValNode)
 
+              somethingNotCompleted = true
               if understood
                 understoodRules[ruleName] = true
                 $node.attr("data-js-polyfill-rule-#{ruleName}", 'evaluated')
@@ -154,13 +157,14 @@ define [
                   $node.attr("data-js-polyfill-rule-#{ruleName}", 'completed')
 
                 break
+
               # Do not give up on this rule yet. Something changed.
               if beforeSomethingChanged != somethingChanged
                 break
 
-          for ruleName of understoodRules
-            if not $node.attr("data-js-polyfill-rule-#{ruleName}")
-              $node.attr("data-js-polyfill-rule-#{ruleName}", 'pending')
+        for ruleName of understoodRules
+          if not $node.attr("data-js-polyfill-rule-#{ruleName}")
+            $node.attr("data-js-polyfill-rule-#{ruleName}", 'pending')
 
 
         if $node.is('.js-polyfill-target')
@@ -170,6 +174,10 @@ define [
             state: JSON.parse(JSON.stringify(_.omit(env.state, 'buckets'))) # Perform a deep clone
           targetEnv.helpers.$context = $node
           @squirreledEnv[$node.attr('id')] = targetEnv
+
+        # If everything was understood then remove the interesting class
+        else if not somethingNotCompleted
+          $node.removeClass('js-polyfill-interesting')
 
       @emit('tick.end', somethingChanged)
       return somethingChanged
