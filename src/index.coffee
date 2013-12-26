@@ -41,6 +41,7 @@ define [
 
     runTree: ($root, lessTree, cb=null) ->
       @emit('start')
+      originalCSSStr = lessTree.toCSS(less)
 
       bindAll = (emitter, eventNames) =>
         _.each eventNames, (name) =>
@@ -105,7 +106,7 @@ define [
       # 6. [x] Populate `content:` for things containing `target-counter` or `target-text`
 
       autogenClassesToString = (autogenClasses) ->
-        cssStrs = []
+        cssStrs = [originalCSSStr]
         env = new less.tree.evalEnv()
 
         for clsName, cls of autogenClasses
@@ -139,7 +140,8 @@ define [
         return fixedPointRunner
 
 
-      pseudoExpander = new PseudoExpander($root)
+      pluginRules = _.map (new FixedPointRunner($root, @plugins, [])).rules, (rule) -> rule.name
+      pseudoExpander = new PseudoExpander($root, pluginRules)
       bindAll pseudoExpander, [
         'selector.start'
         'selector.end'
