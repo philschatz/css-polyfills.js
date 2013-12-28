@@ -132,9 +132,14 @@ define [
           display: none;
           display: block;
         }
+        p {
+          display: block;
+          display: none;
+        }
       '''
       html = '''
         <div>Passed</div>
+        <p>Failed</p>
       '''
       expected = '''
         Passed

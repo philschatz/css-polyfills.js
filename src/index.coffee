@@ -35,9 +35,17 @@ define [
         new ContentSet()
       ]
 
-    constructor: (additionalPlugins=null) ->
-      @plugins = _.clone(CSSPolyfills.DEFAULT_PLUGINS)
-      @plugins = @plugins.concat(additionalPlugins) if additionalPlugins
+    constructor: (config={}) ->
+      _.extend @, config
+      _.defaults @,
+        plugins: []
+        additionalPlugins: []
+        pseudoExpanderClass: PseudoExpander
+        canonicalizerClass: CSSCanonicalizer
+        doNotIncludeDefaultPlugins: false
+
+      if not @doNotIncludeDefaultPlugins
+        @plugins = @plugins.concat(CSSPolyfills.DEFAULT_PLUGINS)
 
     runTree: ($root, lessTree, cb=null) ->
       @emit('start')
@@ -138,18 +146,20 @@ define [
         fixedPointRunner.run()
         return fixedPointRunner
 
+      if @pseudoExpanderClass
 
-      pseudoExpander = new PseudoExpander($root)
-      bindAll pseudoExpander, [
-        'selector.start'
-        'selector.end'
-      ]
+        pseudoExpander = new (@pseudoExpanderClass)($root)
+        bindAll pseudoExpander, [
+          'selector.start'
+          'selector.end'
+        ]
 
-      changeLessTree([pseudoExpander])
+        changeLessTree([pseudoExpander])
 
-      canonicalizer = new CSSCanonicalizer($root, autogenClasses)
-      canonicalizer.run()
-      autogenClasses = canonicalizer.newAutogenClasses
+      if @canonicalizerClass
+        canonicalizer = new (@canonicalizerClass)($root, autogenClasses)
+        canonicalizer.run()
+        autogenClasses = canonicalizer.newAutogenClasses
 
       runFixedPoint(@plugins)
 
