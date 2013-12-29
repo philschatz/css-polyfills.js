@@ -321,7 +321,7 @@ function loadStyles(newVars) {
                     require(['cs!polyfill-path/index'], function(CSSPolyfills) {
                         var cssStr = cssAST.toCSS(less);
                         var p = new CSSPolyfills();
-                        p.run($('html'), cssStr, function(err, css) {
+                        p.run($('html'), cssStr, 'STYLEINPUT', function(err, css) {
                             style.type = 'text/css';
                             if (style.styleSheet) {
                                 style.styleSheet.cssText = css;
@@ -672,7 +672,7 @@ less.refresh = function (reload, newVars) {
         require(['cs!polyfill-path/index'], function(CSSPolyfills) {
             var cssStr = root.toCSS(less);
             var p = new CSSPolyfills();
-            p.run($('html'), cssStr, function(err, cssStr) {
+            p.run($('html'), cssStr, sheet.href, function(err, cssStr) {
                 createCSS(cssStr, sheet, env.lastModified);
             });
         });
