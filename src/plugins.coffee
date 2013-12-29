@@ -364,6 +364,7 @@ define [
 
   class StringSet
     functions:
+      'content': contentsFuncBuilder('contents') # Useful in general for setting `a[href] { content: content(); }`
       'x-string-set-content': contentsFuncBuilder('contents')
       'string': (env, stringNameNode) ->
         stringNameNode = stringNameNode.eval(env)
@@ -429,7 +430,14 @@ define [
       vals = [valNode]
 
     for val in vals
-      if val instanceof less.tree.Quoted
+
+      if val instanceof less.tree.Expression
+        # For some reason LESS files may have nested expressions (not sure why)
+        r = evaluateValNode(val)
+        return null if r == null
+        ret = ret.concat(r)
+
+      else if val instanceof less.tree.Quoted
         ret.push(val.value)
       else if val instanceof less.tree.Dimension
         # Counters return a Number (less.tree.Dimension)
@@ -441,8 +449,12 @@ define [
       else if val instanceof less.tree.Call
         # console.log("Not finished evaluating yet: #{val.name}")
         return null
+      else if val instanceof less.tree.URL
+        # console.log("Skipping content: url()")
+        return null
       else
-        console.warn("ERROR: Attempting to push something unknown. [#{val.value}]")
+        console.warn("BUG: Attempting to set content: to something unknown. [#{val.value}]")
+        console.warn(JSON.stringify(val))
         return null
     return ret
 

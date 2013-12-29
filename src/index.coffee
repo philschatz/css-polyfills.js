@@ -39,7 +39,6 @@ define [
       _.extend @, config
       _.defaults @,
         plugins: []
-        additionalPlugins: []
         pseudoExpanderClass: PseudoExpander
         canonicalizerClass: CSSCanonicalizer
         doNotIncludeDefaultPlugins: false
@@ -74,28 +73,29 @@ define [
       # - Total # of uncovered selectors
       # - Total # of times selectors applied???
 
-      startTime = new Date()
-      selectorCount = 0
-      selectorUncoverredCount = 0
-      selectorsApplied = 0
+      # startTime = new Date()
+      # selectorCount = 0
+      # selectorUncoverredCount = 0
+      # selectorsApplied = 0
 
-      @on 'selector.end', (selector, matches) ->
-        selectorCount += 1
-        selectorsApplied += matches
-        if 0 == matches
-          console.log "DEBUG: CSS Coverage. Unmatched selector [#{selector}]"
-          selectorUncoverredCount += 1
+      # @on 'selector.end', (selector, matches) ->
+      #   selectorCount += 1
+      #   selectorsApplied += matches
+      #   if 0 == matches
+      #     console.log "DEBUG: CSS Coverage. Unmatched selector [#{selector}]"
+      #     selectorUncoverredCount += 1
 
       # Because there is no event when CSS parsing is complete, listen to the runner starting
       # and print the stats
-      @on 'runner.start', () ->
-        console.log "DEBUG: CSS Stats: selectors = #{selectorCount}"
-        console.log "DEBUG: CSS Stats: uncovered = #{selectorUncoverredCount}"
-        console.log "DEBUG: CSS Stats: times applied = #{selectorsApplied}"
-        console.log "DEBUG: CSS Stats: took = #{new Date() - startTime}ms"
 
-      @on 'tick.start', (count) -> console.log "DEBUG: Starting TICK #{count}"
-      @on 'end',             () -> console.log "DEBUG: CSSPolyfills Done. Took #{new Date() - startTime}ms"
+      # @on 'runner.start', () ->
+      #   console.log "DEBUG: CSS Stats: selectors = #{selectorCount}"
+      #   console.log "DEBUG: CSS Stats: uncovered = #{selectorUncoverredCount}"
+      #   console.log "DEBUG: CSS Stats: times applied = #{selectorsApplied}"
+      #   console.log "DEBUG: CSS Stats: took = #{new Date() - startTime}ms"
+
+      # @on 'tick.start', (count) -> console.log "DEBUG: Starting TICK #{count}"
+      # @on 'end',             () -> console.log "DEBUG: CSSPolyfills Done. Took #{new Date() - startTime}ms"
 
 
       # Run the plugins in multiple phases because move-to manipulates the DOM
@@ -115,6 +115,9 @@ define [
       autogenClassesToString = (autogenClasses) ->
         cssStrs = []
         env = new less.tree.evalEnv()
+        # Set `compress` and `dumpLineNumbers` so coverage tools can get line numbers
+        env.compress = false
+        env.dumpLineNumbers = 'all'
 
         for clsName, cls of autogenClasses
           canonicalizedStrs = _.map cls.selector, (sel) -> sel.toCSS(env)
@@ -128,6 +131,9 @@ define [
 
       changeLessTree = (plugins) ->
         env = new less.tree.evalEnv()
+        # Set `compress` and `dumpLineNumbers` so coverage tools can get line numbers
+        env.compress = false
+        env.dumpLineNumbers = 'all'
         env.plugins = plugins
 
         lessTree.toCSS(env)
@@ -179,9 +185,16 @@ define [
 
       @emit('end')
 
-    run: ($root, cssStyle, cb=null) ->
+    run: ($root, cssStyle, filename, cb=null) ->
+      env = {
+        # Set `compress` and `dumpLineNumbers` so coverage tools can get line numbers
+        compress: false
+        dumpLineNumbers: 'all'
+        # Set `filename` so `@import` works (for loading LESS files instead of CSS files)
+        filename: filename
+      }
 
-      p = new less.Parser()
+      p = new less.Parser(env)
       p.parse cssStyle, (err, lessTree) =>
 
         return cb(err, lessTree) if err

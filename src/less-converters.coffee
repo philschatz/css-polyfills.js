@@ -23,10 +23,6 @@ define [
 
 
   class PseudoExpander extends AbstractSelectorVisitor
-    # Modifies the AST so it should run pre-eval
-    isPreEvalVisitor: true
-    isPreVisitor: false
-    isReplacing: false
 
     # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
     PSEUDO_ELEMENT_NAME: 'span' # 'polyfillpseudo'
