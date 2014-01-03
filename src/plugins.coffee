@@ -364,7 +364,7 @@ define [
 
   class StringSet
     functions:
-      'content': contentsFuncBuilder('contents') # Useful in general for setting `a[href] { content: content(); }`
+      # 'content': contentsFuncBuilder('contents') # Useful in general for setting `a[href] { content: content(); }`
       'x-string-set-content': contentsFuncBuilder('contents')
       'string': (env, stringNameNode) ->
         stringNameNode = stringNameNode.eval(env)
