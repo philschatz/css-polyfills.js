@@ -39,6 +39,7 @@ define [
       _.extend @, config
       _.defaults @,
         plugins: []
+        lessPlugins: []
         pseudoExpanderClass: PseudoExpander
         canonicalizerClass: CSSCanonicalizer
         doNotIncludeDefaultPlugins: false
@@ -160,7 +161,9 @@ define [
           'selector.end'
         ]
 
-        changeLessTree([pseudoExpander])
+        @lessPlugins.push(pseudoExpander)
+
+      changeLessTree(@lessPlugins)
 
       if @canonicalizerClass
         canonicalizer = new (@canonicalizerClass)($root, autogenClasses)
