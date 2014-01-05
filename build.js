@@ -4,6 +4,6 @@
   include: ['./bower_components/requirejs/require'],
   stubModules: ['cs'],
   optimize: 'none',
-  out: 'dist.js',
+  out: 'dist/css-polyfills.js',
   name: 'cs!polyfill-path/index',
 })

@@ -1,8 +1,8 @@
 {
   "name": "css-polyfills",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "scripts": {
-    "install": "bower install && r.js -o build.js",
+    "develop": "bower install && r.js -o build.js",
     "blanket": {
       "pattern": [
         "css-polyfills.js"

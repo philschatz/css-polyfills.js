@@ -1,5 +1,5 @@
 /bower_components/
 /node_modules/
 
-# The build, distribution file
-/dist.js
+# The distribution file (for npmjs)
+dist/css-polyfills.js
