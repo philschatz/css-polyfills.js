@@ -207,4 +207,7 @@ define [
       parser.parse(cssStyle, cb)
 
 
+  # Set a global for non-AMD projects
+  window?.CSSPolyfills = CSSPolyfills
+
   return CSSPolyfills
