@@ -188,7 +188,13 @@ define [
 
       @emit('end')
 
-    run: ($root, cssStyle, filename, cb=null) ->
+    run: ($root, cssStyle, filename, cb) ->
+      @parse cssStyle, filename, (err, lessTree) =>
+        return cb?(err, lessTree) if err
+        @runTree($root, lessTree, cb)
+
+    # Parse a CSS/LESS file with the correct environment variables for coverage
+    parse: (cssStyle, filename, cb) ->
       env = {
         # Set `compress` and `dumpLineNumbers` so coverage tools can get line numbers
         compress: false
@@ -197,11 +203,8 @@ define [
         filename: filename
       }
 
-      p = new less.Parser(env)
-      p.parse cssStyle, (err, lessTree) =>
+      parser = new less.Parser(env)
+      parser.parse(cssStyle, cb)
 
-        return cb(err, lessTree) if err
-
-        @runTree($root, lessTree, cb)
 
   return CSSPolyfills
