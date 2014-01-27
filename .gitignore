@@ -3,3 +3,4 @@
 
 # The distribution file (for npmjs)
 dist/css-polyfills.js
+dist/*

@@ -1,4 +1,4 @@
-define [
+define 'polyfill-path/index', [
   'underscore'
   'jquery'
   'less'
@@ -7,7 +7,8 @@ define [
   'cs!polyfill-path/plugins'
   'cs!polyfill-path/extras'
   'cs!polyfill-path/fixed-point-runner'
-], (_, $, less, EventEmitter, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner) ->
+  'cs!polyfill-path/selector-visitor' # Squirrel for css-coverage and other projects that customize plugins
+], (_, $, less, EventEmitter, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
 
 
   PseudoExpander    = LESS_CONVERTERS.PseudoExpander
@@ -206,6 +207,11 @@ define [
       parser = new less.Parser(env)
       parser.parse(cssStyle, cb)
 
+
+  # Stick jQuery and less onto the CSSPolyfills object so the tree nodes can be customized
+  CSSPolyfills.less = less
+  CSSPolyfills.$ = $
+  CSSPolyfills.AbstractSelectorVisitor = AbstractSelectorVisitor
 
   # Set a global for non-AMD projects
   window?.CSSPolyfills = CSSPolyfills

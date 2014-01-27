@@ -1,7 +1,8 @@
-define [
+define 'polyfill-path/extras', [
   'underscore'
   'jquery'
-], (_, $) ->
+  'less'
+], (_, $, less) ->
 
   uniqueIdCount = 0
   uniqueId = () -> "id-added-via-x-ensure-id-#{uniqueIdCount++}"

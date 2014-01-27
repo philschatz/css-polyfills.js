@@ -1,4 +1,4 @@
-define [
+define 'polyfill-path/plugins', [
   'underscore'
   'jquery'
   'less'
