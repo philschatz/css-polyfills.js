@@ -1,8 +1,9 @@
-define [
+define 'polyfill-path/fixed-point-runner', [
   'underscore'
   'jquery'
+  'less'
   'eventemitter2'
-], (_, $, EventEmitter) ->
+], (_, $, less, EventEmitter) ->
 
 
   # There is a bit of ugliness with the `data-js-polyfill-rule-#{ruleName}` attributes.

@@ -1,4 +1,4 @@
-define [
+define 'polyfill-path/index', [
   'underscore'
   'jquery'
   'less'

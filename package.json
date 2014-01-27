@@ -2,7 +2,7 @@
   "name": "css-polyfills",
   "version": "0.0.6",
   "scripts": {
-    "develop": "bower install && r.js -o build.js",
+    "develop": "bower install && grunt",
     "blanket": {
       "pattern": [
         "css-polyfills.js"
@@ -17,7 +17,9 @@
     "chai": "~1.8.1",
     "mocha": "~1.14.0",
     "http-server": "~0.5.5",
-    "requirejs": "~2.1.9"
+    "requirejs": "~2.1.9",
+    "grunt-contrib-coffee": "~0.7",
+    "grunt-contrib-concat": "~0.3.0"
   },
   "repository": {
     "type": "git",

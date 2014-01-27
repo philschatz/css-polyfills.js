@@ -1,4 +1,4 @@
-define [
+define 'polyfill-path/less-converters', [
   'underscore'
   'jquery'
   'cs!polyfill-path/selector-visitor'

@@ -1,9 +1,11 @@
-define [
+define 'polyfill-path/selector-visitor', [
+  'underscore'
+  'less'
   'eventemitter2'
   # Add `:nth-of-type()` to jQuery
   'jquery'
   'polyfill-path/jquery-selectors'
-], (EventEmitter) ->
+], (_, less, EventEmitter) ->
 
   class LessVisitor extends EventEmitter
     constructor: (@$root) ->
