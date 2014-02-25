@@ -425,15 +425,19 @@ h3 { string-set: chapter-title content(); }
     <pre class="css-editor"><code class="css">a[href] {
   // Use x-target-is as a switch for which link text to use
   content: x-target-is(attr(href), 'figure') 'See Figure';
-  content: x-target-is(attr(href), 'section')
+  // Link to a section WITHOUT a title
+  content: x-target-is(attr(href), 'section:not(:has(>.title))')
            'See ' target-text(attr(href), content(before));
-  content: x-target-is(attr(href), 'section')
+  // Link to a section **with** a title
+  content: x-target-is(attr(href), 'section:has(>.title)')
            'See ' target-text(attr(href), content(before))
            target-text(attr(href), content('> .title'));
 }
+
 // Some uninteresting formatting just for the demo
 section { counter-increment: section; }
 section::before { content: counter(section) ' '; }
+
 </code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
 
   <div class="html-editor">&lt;figure id="id-figure">&lt;i class="fa fa-smile-o">&lt;/i> image&lt;/figure>
