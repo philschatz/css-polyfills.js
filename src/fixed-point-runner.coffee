@@ -50,8 +50,10 @@ define 'polyfill-path/fixed-point-runner', [
       @rules = []
 
       for plugin in @plugins
-        @functions[funcName] = func for funcName, func of plugin.functions
-        @rules.push({name:ruleName, func:ruleFunc}) for ruleName, ruleFunc of plugin.rules
+        # **NOTE:** Make sure the `@` for `func` is the plugin before adding it to `@functions`
+        @functions[funcName] = func.bind(plugin) for funcName, func of plugin.functions
+        # **NOTE:** Make sure the `@` for `ruleFunc` is the plugin before adding it to `@rules`
+        @rules.push({name:ruleName, func:ruleFunc.bind(plugin)}) for ruleName, ruleFunc of plugin.rules
 
 
     lookupAutogenClass: ($node) ->
