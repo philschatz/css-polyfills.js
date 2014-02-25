@@ -27,6 +27,7 @@ MODULES =
   less: @less
   eventemitter2: @EventEmitter2
   'polyfill-path/jquery-selectors': @$
+  'selector-set': @SelectorSet
 
 
 
@@ -34,7 +35,7 @@ MODULES =
 @jQuery = @$    = @__polyfills_originalGlobals['jquery']
 @less           = @__polyfills_originalGlobals['less']
 @EventEmitter2  = @__polyfills_originalGlobals['eventemitter2']
-
+@SelectorSet    = @__polyfills_originalGlobals['SelectorSet']
 
 # This project is written to use RequireJS (and can be used this way for development) but
 # Since all the files are concatenated, use a simple `define` function

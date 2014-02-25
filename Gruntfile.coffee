@@ -36,6 +36,7 @@ module.exports = (grunt) ->
             'node_modules/less/dist/less-1.6.0.js'
             'src/jquery-selectors.js'
             'bower_components/eventemitter2/lib/eventemitter2.js'
+            'bower_components/selector-set/selector-set.js'
 
             'dist/helper-after-libs.js'
             'dist/css-polyfills-coffee.js'
