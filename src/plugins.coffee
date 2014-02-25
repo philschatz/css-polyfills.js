@@ -4,6 +4,10 @@ define 'polyfill-path/plugins', [
   'less'
 ], (_, $, less) ->
 
+  # Each plugin provides a set of `functions` and/or `rules`.
+  # The arguments to a `function` are the `env` followed by the arguments passed to the function
+  # The arguments to a `rule` are the `env` followed by the value of the rule (as individual arguments that need to be evaluated)
+
 
   # Like a less.tree.Anonymous node but explicitly saying it contains a jQuery set.
   # created by move-to and used by `content: `
@@ -258,7 +262,7 @@ define 'polyfill-path/plugins', [
 
 
 
-  # This is used by target-text and string-set
+  # This is used by `target-text` and `string-set`
   # Valid options are `content(contents)`, `content(before)`, `content(after)`, `content(first-letter)`
   # TODO: Add support for `content(env(...))`
   #
