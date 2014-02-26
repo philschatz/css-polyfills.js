@@ -264,9 +264,25 @@ define [
         }
       '''
       html = '''
-        <span>failed</div>
+        <span>failed</span>
       '''
       expected = '''
         [PASSED]
+      '''
+      simple(css, html, expected)
+
+
+    it 'correctly handles `display: none !important`', () ->
+      css = '''
+        span {
+          display: none !important;
+        }
+      '''
+      html = '''
+        <span>[FAILED]</span>
+        Test
+      '''
+      expected = '''
+        Test
       '''
       simple(css, html, expected)

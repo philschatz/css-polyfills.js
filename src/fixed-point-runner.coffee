@@ -186,6 +186,20 @@ define 'polyfill-path/fixed-point-runner', [
 
             filteredRules = _.filter(autogenRules, ruleFilter).reverse()
 
+
+            # less.js does not parse `!important` properly. Sometimes (as in `display: none !important`)
+            # it creates a `tree.Anonymous` node with the text `none !important`.
+            # This goes through and cleans it up.
+            # TODO: Move this into the Tree Visitor and then into the less.js parser
+            for r in filteredRules
+              if !r.important
+                v = r.value.value?[0]
+                if v instanceof less.tree.Anonymous and /\!important$/.test(v.value)
+                  r.important = ' !important'
+                  # Update the original unevaluated node (This code assumes a certain structure)
+                  v.value = v.value.replace(/\s+\!important$/, '')
+
+
             # Sort rules based on `!important`
             filteredRules.sort (a, b) ->
               return 0 if a.important and b.important
