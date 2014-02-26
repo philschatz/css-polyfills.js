@@ -184,7 +184,16 @@ define 'polyfill-path/fixed-point-runner', [
               name = name.join('') if name instanceof Array
               return (rule.name == name) or ('*' == rule.name)
 
-            for autogenRule, i in _.filter(autogenRules, ruleFilter).reverse()
+            filteredRules = _.filter(autogenRules, ruleFilter).reverse()
+
+            # Sort rules based on `!important`
+            filteredRules.sort (a, b) ->
+              return 0 if a.important and b.important
+              return -1 if a.important
+              return 1 if b.important
+              return 0
+
+            for autogenRule, i in filteredRules
 
               ruleName = autogenRule.name
               # As of https://github.com/less/less.js/commit/ebdadaedac2ba2be377ae190060f9ca8086253a4

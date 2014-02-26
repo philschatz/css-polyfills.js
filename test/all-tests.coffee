@@ -242,3 +242,31 @@ define [
         PASSED
       '''
       simple(css, html, expected)
+
+    it 'prioritizes !important rules (simple)', () ->
+      css = '''
+        span { content: '[PASSED]' !important; }
+        span { content: '[FAILED]'; }
+      '''
+      html = '''
+        <span>failed</div>
+      '''
+      expected = '''
+        [PASSED]
+      '''
+      simple(css, html, expected)
+
+    it 'prioritizes !important rules but falls back if none can be satisfied', () ->
+      css = '''
+        span {
+          content: '[PASSED]';
+          content: unknown-function() !important;
+        }
+      '''
+      html = '''
+        <span>failed</div>
+      '''
+      expected = '''
+        [PASSED]
+      '''
+      simple(css, html, expected)
