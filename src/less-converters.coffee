@@ -33,7 +33,7 @@ define 'polyfill-path/less-converters', [
     constructor: (root, @set, @autogenClasses={}) ->
       super(arguments...)
 
-    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector, originalSelector, selectorStr) ->
+    operateOnElements: (frame, ruleSet, domSelector, pseudoSelector, originalSelector, selectorStr) ->
       if not pseudoSelector.elements.length
         # Simple selector; no pseudoSelectors
 
@@ -45,15 +45,15 @@ define 'polyfill-path/less-converters', [
           isBrowserSelector = false
 
         if isBrowserSelector
-          $nodes.addClass('js-polyfill-interesting')
           @set.add(selectorStr, new AutogenClass(domSelector, ruleSet.rules))
         else
           className = freshClass('simple')
-          $nodes.addClass("js-polyfill-interesting js-polyfill-autoclass #{className}")
+          @getNodes(selectorStr).addClass("js-polyfill-autoclass #{className}")
           @set.add(".#{className}", new AutogenClass(domSelector, ruleSet.rules))
 
       else
 
+        $nodes = @getNodes(selectorStr)
         $context = $nodes
         for pseudoNode in pseudoSelector.elements
           pseudoName = pseudoNode.value.replace('::', ':')

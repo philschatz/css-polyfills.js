@@ -64,6 +64,12 @@ define 'polyfill-path/selector-visitor', [
         pseudoSelector:   node.createDerived(node.elements.slice(sliceIndex))
       }
 
+    # Expensive call and should be used only when you actually need to operate
+    # on the nodes matched by a selector (like expanding pseudoselectors or
+    # or converting a Sizzle selector to one the browser understands)
+    getNodes: (selectorStr) ->
+      return @$root.find(selectorStr)
+
     visitRuleset: (node) ->
       return if node.root
 
@@ -92,16 +98,14 @@ define 'polyfill-path/selector-visitor', [
 
         selectorStr = context.join('')
 
+        @emit('selector.start', selectorStr, node.debugInfo)
+        # Send a function that will retreive the elements that were matched.
+        # For large files this is an expensive operation and should be used sparingly
+        @emit('selector.end', selectorStr, node.debugInfo, () => @getNodes(selectorStr))
         # Ignore directives like `@page` or `@footnotes` or namespaced selectors like `mml|math`
         if '@' in selectorStr or '|' in selectorStr
-          @emit('selector.start', selectorStr, node.debugInfo)
-          @emit('selector.end', selectorStr, -1, node.debugInfo)
 
         else
-          @emit('selector.start', selectorStr, node.debugInfo)
-          $els = @$root.find(selectorStr)
-          @emit('selector.end', selectorStr, $els.length, node.debugInfo)
-
-          @operateOnElements(null, $els, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector, selectorStr)
+          @operateOnElements(null, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector, selectorStr)
 
         context.pop()
