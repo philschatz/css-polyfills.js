@@ -292,8 +292,9 @@ define 'polyfill-path/fixed-point-runner', [
     run: () ->
       @setUp()
 
-      # Initially, interesting nodes are all the nodes that have an AutogenClass
-      $interesting = @$root.find('.js-polyfill-autoclass, .js-polyfill-interesting')
+      # Initially, interesting nodes are all the nodes that
+      # have `.js-polyfill-interesting` (added by PseudoExpander)
+      $interesting = @$root.find(@set.selectors.join(','))
       $interesting.addClass('js-polyfill-interesting')
 
       while changes = @tick($interesting) # keep looping while somethingChanged

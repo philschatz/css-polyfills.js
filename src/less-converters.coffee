@@ -27,6 +27,8 @@ define 'polyfill-path/less-converters', [
     # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
     PSEUDO_ELEMENT_NAME: 'span' # 'polyfillpseudo'
 
+    # Used to test if a selector is recognized by the browser by calling `node.querySelector(...)`
+    selectorTestNode = $('<span></span>')[0]
 
     constructor: (root, @set, @autogenClasses={}) ->
       super(arguments...)
@@ -34,10 +36,21 @@ define 'polyfill-path/less-converters', [
     operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector, originalSelector, selectorStr) ->
       if not pseudoSelector.elements.length
         # Simple selector; no pseudoSelectors
-        className = freshClass('simple')
-        $nodes.addClass("js-polyfill-autoclass #{className}")
-        @autogenClasses[className] = new AutogenClass(domSelector, ruleSet.rules)
-        @set.add(selectorStr, new AutogenClass(domSelector, ruleSet.rules))
+
+        # Test if the selector will work in a browser. If so, keep it. Otherwise, generate a new class for it.
+        try
+          selectorTestNode.querySelector(selectorStr)
+          isBrowserSelector = true
+        catch e
+          isBrowserSelector = false
+
+        if isBrowserSelector
+          $nodes.addClass('js-polyfill-interesting')
+          @set.add(selectorStr, new AutogenClass(domSelector, ruleSet.rules))
+        else
+          className = freshClass('simple')
+          $nodes.addClass("js-polyfill-interesting js-polyfill-autoclass #{className}")
+          @set.add(".#{className}", new AutogenClass(domSelector, ruleSet.rules))
 
       else
 

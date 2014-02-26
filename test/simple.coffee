@@ -21,5 +21,5 @@ define ['jquery', 'chai', 'cs!polyfill-path/index'], ($, chai, CSSPolyfills) ->
       $content.remove()
       strExpect(expected, $content.text())
 
-      console.log('----- Converted CSS ------')
-      console.log(cssStr)
+      # console.log('----- Converted CSS ------')
+      # console.log(cssStr)
