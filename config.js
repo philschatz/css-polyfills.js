@@ -7,7 +7,8 @@ require.config({
       'underscore':    './bower_components/underscore/underscore',
       'jquery':        './bower_components/jquery/jquery',
       'less':          './node_modules/less/dist/less-1.6.0',
-      'eventemitter2': './bower_components/eventemitter2/lib/eventemitter2'
+      'eventemitter2': './bower_components/eventemitter2/lib/eventemitter2',
+      'selector-set':  './bower_components/selector-set/selector-set'
     },
     shim: {
       'underscore': {
@@ -16,5 +17,9 @@ require.config({
       'less': {
         exports: 'less'
       },
+      'selector-set': {
+        dependencies: ['jquery'],
+        exports: 'SelectorSet'
+      }
     },
 });

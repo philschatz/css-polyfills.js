@@ -3,16 +3,16 @@ define 'polyfill-path/index', [
   'jquery'
   'less'
   'eventemitter2'
+  'selector-set'
   'cs!polyfill-path/less-converters'
   'cs!polyfill-path/plugins'
   'cs!polyfill-path/extras'
   'cs!polyfill-path/fixed-point-runner'
   'cs!polyfill-path/selector-visitor' # Squirrel for css-coverage and other projects that customize plugins
-], (_, $, less, EventEmitter, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
+], (_, $, less, EventEmitter, SelectorSet, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
 
 
   PseudoExpander    = LESS_CONVERTERS.PseudoExpander
-  CSSCanonicalizer  = LESS_CONVERTERS.CSSCanonicalizer
 
   MoveTo        = PLUGINS.MoveTo
   DisplayNone   = PLUGINS.DisplayNone
@@ -28,7 +28,7 @@ define 'polyfill-path/index', [
 
     @DEFAULT_PLUGINS = [
         new MoveTo()
-        # new DisplayNone()
+        new DisplayNone()
         new TargetCounter()
         new TargetText()
         new StringSet()
@@ -42,7 +42,6 @@ define 'polyfill-path/index', [
         plugins: []
         lessPlugins: []
         pseudoExpanderClass: PseudoExpander
-        canonicalizerClass: CSSCanonicalizer
         doNotIncludeDefaultPlugins: false
 
       if not @doNotIncludeDefaultPlugins
@@ -114,22 +113,28 @@ define 'polyfill-path/index', [
       # 5. [x] Populate `content:` for all things **except** `target-counter` or `target-text`
       # 6. [x] Populate `content:` for things containing `target-counter` or `target-text`
 
-      autogenClassesToString = (autogenClasses) ->
+      outputRulesetsToString = (outputRulesets) ->
         cssStrs = []
         env = new less.tree.evalEnv()
         # Set `compress` and `dumpLineNumbers` so coverage tools can get line numbers
         env.compress = false
         env.dumpLineNumbers = 'all'
 
-        for clsName, cls of autogenClasses
-          canonicalizedStrs = _.map cls.selector, (sel) -> sel.toCSS(env)
-          cssStrs.push(".#{clsName} { /* BASED_ON: #{canonicalizedStrs.join('|')} */")
-          for rule in cls.rules
+        for {selector:selectorStr, data:autogenClass} in outputRulesets.queryAll($root[0])
+          {rules, selector} = autogenClass
+          originalSelectorStr = selector.toCSS(env).trim()
+          if originalSelectorStr == selectorStr
+            comment = ''
+          else
+            comment = "/* BASED_ON: #{originalSelectorStr} */"
+
+          cssStrs.push("#{selectorStr} { #{comment}")
+          for rule in rules
             cssStrs.push("  #{rule.toCSS(env)}")
           cssStrs.push("}")
         return cssStrs.join('\n')
 
-      autogenClasses = {}
+      set = new SelectorSet()
 
       changeLessTree = (plugins) ->
         env = new less.tree.evalEnv()
@@ -139,11 +144,9 @@ define 'polyfill-path/index', [
         env.plugins = plugins
 
         lessTree.toCSS(env)
-        for plugin in plugins
-          _.extend(autogenClasses, plugin.autogenClasses)
 
       runFixedPoint = (plugins) ->
-        fixedPointRunner = new FixedPointRunner($root, plugins, autogenClasses)
+        fixedPointRunner = new FixedPointRunner($root, plugins, set)
 
         bindAll fixedPointRunner, [
           'runner.start'
@@ -156,7 +159,7 @@ define 'polyfill-path/index', [
 
       if @pseudoExpanderClass
 
-        pseudoExpander = new (@pseudoExpanderClass)($root)
+        pseudoExpander = new (@pseudoExpanderClass)($root, set)
         bindAll pseudoExpander, [
           'selector.start'
           'selector.end'
@@ -165,11 +168,6 @@ define 'polyfill-path/index', [
         @lessPlugins.push(pseudoExpander)
 
       changeLessTree(@lessPlugins)
-
-      if @canonicalizerClass
-        canonicalizer = new (@canonicalizerClass)($root, autogenClasses)
-        canonicalizer.run()
-        autogenClasses = canonicalizer.newAutogenClasses
 
       runFixedPoint(@plugins)
 
@@ -184,8 +182,7 @@ define 'polyfill-path/index', [
       # # add '.' and ',' for the find, but a space for the classes to remove
       # $root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
 
-      # return the converted CSS
-      cb?(null, autogenClassesToString(autogenClasses))
+      cb?(null, outputRulesetsToString(set))
 
       @emit('end')
 

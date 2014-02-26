@@ -102,6 +102,6 @@ define 'polyfill-path/selector-visitor', [
           $els = @$root.find(selectorStr)
           @emit('selector.end', selectorStr, $els.length, node.debugInfo)
 
-          @operateOnElements(null, $els, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector)
+          @operateOnElements(null, $els, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector, selectorStr)
 
         context.pop()

@@ -20,3 +20,6 @@ define ['jquery', 'chai', 'cs!polyfill-path/index'], ($, chai, CSSPolyfills) ->
     p.run $content, css, 'STDINPUT', (err, cssStr) ->
       $content.remove()
       strExpect(expected, $content.text())
+
+      console.log('----- Converted CSS ------')
+      console.log(cssStr)

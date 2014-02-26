@@ -23,19 +23,24 @@
 
 MODULES =
   underscore: @_
-  jquery: @$
+  jquery: @jQuery
   less: @less
   eventemitter2: @EventEmitter2
   'polyfill-path/jquery-selectors': @$
   'selector-set': @SelectorSet
 
+# Configure SelectorSet
+# TODO: This needs to move out so development versions will work too
+# Use jQuery's internal Sizzle instead of the browser
+@SelectorSet::querySelectorAll = @jQuery.find
+@SelectorSet::matchesSelector  = @jQuery.find.matchesSelector
 
 
 @_              = @__polyfills_originalGlobals['underscore']
 @jQuery = @$    = @__polyfills_originalGlobals['jquery']
 @less           = @__polyfills_originalGlobals['less']
 @EventEmitter2  = @__polyfills_originalGlobals['eventemitter2']
-@SelectorSet    = @__polyfills_originalGlobals['SelectorSet']
+# @SelectorSet    = @__polyfills_originalGlobals['SelectorSet']
 
 # This project is written to use RequireJS (and can be used this way for development) but
 # Since all the files are concatenated, use a simple `define` function
