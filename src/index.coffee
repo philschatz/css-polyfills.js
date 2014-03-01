@@ -113,6 +113,15 @@ define 'polyfill-path/index', [
       # 5. [x] Populate `content:` for all things **except** `target-counter` or `target-text`
       # 6. [x] Populate `content:` for things containing `target-counter` or `target-text`
 
+
+      # Monkey patch the `.add()` method to squirrel away the selectors
+      SelectorSet_add = SelectorSet::add;
+      SelectorSet::add = (sel, data) ->
+        SelectorSet_add.apply(@, arguments)
+        @addedSelectors ?= []
+        @addedSelectors.push({selector:sel, data:data})
+
+
       outputRulesetsToString = (outputRulesets) ->
         cssStrs = []
         env = new less.tree.evalEnv()
@@ -120,18 +129,23 @@ define 'polyfill-path/index', [
         env.compress = false
         env.dumpLineNumbers = 'all'
 
-        for {selector:selectorStr, data:autogenClass} in outputRulesets.queryAll($root[0])
+        start = new Date()
+        # Use the `addedSelectors` which were monkey patched in using the code above
+        allSelectors = outputRulesets.addedSelectors
+
+        for {selector:selectorStr, data:autogenClass} in allSelectors
           {rules, selector} = autogenClass
           originalSelectorStr = selector.toCSS(env).trim()
           if originalSelectorStr == selectorStr
             comment = ''
           else
-            comment = "/* BASED_ON: #{originalSelectorStr} */"
+            comment = "/* BASED_ON: ... #{originalSelectorStr} */"
 
           cssStrs.push("#{selectorStr} { #{comment}")
           for rule in rules
             cssStrs.push("  #{rule.toCSS(env)}")
           cssStrs.push("}")
+
         return cssStrs.join('\n')
 
       set = new SelectorSet()
