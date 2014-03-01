@@ -171,6 +171,10 @@ define 'polyfill-path/fixed-point-runner', [
 
         autogenRules = $node.data('js-polyfill-cache-rules')
 
+        # autogenClasses = (autoClass for {data:autoClass} in @lookupAutogenClasses($node))
+        # autogenRules = specificitySort(autogenClasses)
+
+
         if autogenRules.length
 
           for rule in @rules
