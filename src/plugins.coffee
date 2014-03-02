@@ -486,6 +486,8 @@ define 'polyfill-path/plugins', [
         else if val instanceof less.tree.URL
           # console.log("Skipping content: url()")
           return null
+        else if val instanceof less.tree.Comment
+          ret.push('')
         else
           console.warn("BUG: Attempting to set content: to something unknown. [#{val.value}]")
           console.warn(JSON.stringify(val))
