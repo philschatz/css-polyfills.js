@@ -148,7 +148,10 @@ define 'polyfill-path/index', [
 
         return cssStrs.join('\n')
 
-      set = new SelectorSet()
+      # Create 2 selector sets; one for all the selectors and one for only the
+      # "interesting" selectors that fixed-point cares about.
+      allSet = new SelectorSet()
+      interestingSet = new SelectorSet()
 
       changeLessTree = (plugins) ->
         env = new less.tree.evalEnv()
@@ -160,12 +163,13 @@ define 'polyfill-path/index', [
         lessTree.toCSS(env)
 
       runFixedPoint = (plugins) ->
-        fixedPointRunner = new FixedPointRunner($root, plugins, set)
+        fixedPointRunner = new FixedPointRunner($root, plugins, interestingSet)
 
         bindAll fixedPointRunner, [
           'runner.start'
           'runner.end'
           'tick.start'
+          'tick.node'
           'tick.end'
         ]
         fixedPointRunner.run()
@@ -173,7 +177,7 @@ define 'polyfill-path/index', [
 
       if @pseudoExpanderClass
 
-        pseudoExpander = new (@pseudoExpanderClass)($root, set)
+        pseudoExpander = new (@pseudoExpanderClass)($root, allSet, interestingSet, @plugins)
         bindAll pseudoExpander, [
           'selector.start'
           'selector.end'
@@ -196,7 +200,7 @@ define 'polyfill-path/index', [
       # # add '.' and ',' for the find, but a space for the classes to remove
       # $root.find(".#{discardedClasses.join(',.')}").removeClass(discardedClasses.join(' '))
 
-      cb?(null, outputRulesetsToString(set))
+      cb?(null, outputRulesetsToString(allSet))
 
       @emit('end')
 

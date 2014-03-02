@@ -30,8 +30,21 @@ define 'polyfill-path/less-converters', [
     # Used to test if a selector is recognized by the browser by calling `node.querySelector(...)`
     selectorTestNode = $('<span></span>')[0]
 
-    constructor: (root, @set, @autogenClasses={}) ->
+    constructor: (root, @set, @interestingSet, plugins) ->
       super(arguments...)
+
+      @interestingRules = []
+      for plugin in plugins
+        for ruleName of plugin.rules or {}
+          @interestingRules[ruleName] = true
+
+
+    hasInterestingRules: (ruleSet) ->
+      # Always return true if the meta-rule `*` is in the set
+      return true if @interestingRules['*']
+      for rule in ruleSet.rules
+        return true if rule.name of @interestingRules
+
 
     operateOnElements: (frame, ruleSet, domSelector, pseudoSelector, originalSelector, selectorStr) ->
       if not pseudoSelector.elements.length
@@ -45,11 +58,16 @@ define 'polyfill-path/less-converters', [
           isBrowserSelector = false
 
         if isBrowserSelector
-          @set.add(selectorStr, new AutogenClass(domSelector, ruleSet.rules))
+          autoClass = new AutogenClass(domSelector, ruleSet.rules)
+          @set.add(selectorStr, autoClass)
+          @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
         else
           className = freshClass('simple')
           @getNodes(selectorStr).addClass("js-polyfill-autoclass #{className}")
-          @set.add(".#{className}", new AutogenClass(domSelector, ruleSet.rules))
+          selectorStr = ".#{className}"
+
+          @set.add(selectorStr, autoClass)
+          @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
 
       else
 
@@ -93,9 +111,11 @@ define 'polyfill-path/less-converters', [
           newClassName = freshClass('pseudo')
           $context.addClass("js-polyfill-autoclass #{newClassName}")
 
-          # TODO: Pull out the old selector for use in calculating priorities
-          @autogenClasses[newClassName] = new AutogenClass(originalSelector, ruleSet.rules)
-          @set.add(".#{newClassName}", new AutogenClass(originalSelector, ruleSet.rules))
+          selectorStr = ".#{newClassName}"
+          autoClass = new AutogenClass(originalSelector, ruleSet.rules, @hasInterestingRules(ruleSet))
+
+          @set.add(selectorStr, autoClass)
+          @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
 
 
   return {

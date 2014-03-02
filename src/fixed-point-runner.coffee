@@ -153,6 +153,7 @@ define 'polyfill-path/fixed-point-runner', [
 
       for node in $interesting
         $node = $(node)
+        @emit('tick.node', $node)
         # If this is false after looping over the rules then remove the interesting class
         somethingNotCompleted = false
 
@@ -247,6 +248,14 @@ define 'polyfill-path/fixed-point-runner', [
                 if understood == 'RULE_COMPLETED'
                   somethingChanged += 1
                   $node.attr("data-js-polyfill-rule-#{ruleName}", 'completed')
+
+                  # TODO: Remove this rule so it does not need to be processed again
+                  # TODO: remove the selector if there are no more interesting rules
+                  # Flag this rule (and all subsequent ones as not needing to be output in the CSS)
+                  # for j in [i..filteredRules.length]
+                  #   autogenRules.remove(filteredRules[j])
+                  # if 0 == autogenRules.length
+                  #   $node.removeClass('js-polyfill-interesting')
 
                 break
 
