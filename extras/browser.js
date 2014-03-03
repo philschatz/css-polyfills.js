@@ -5,6 +5,9 @@
 //
 /*global less, window, document, XMLHttpRequest, location */
 
+var less = CSSPolyfills.less;
+var $ = CSSPolyfills.$;
+
 var isFileProtocol = /^(file|chrome(-extension)?|resource|qrc|app):/.test(location.protocol);
 
 less.env = less.env || (location.hostname == '127.0.0.1' ||
@@ -318,7 +321,6 @@ function loadStyles(newVars) {
                     }
 
 
-                    require(['cs!polyfill-path/index'], function(CSSPolyfills) {
                         var cssStr = cssAST.toCSS(less);
                         var p = new CSSPolyfills();
                         p.run($('html'), cssStr, 'STYLEINPUT', function(err, css) {
@@ -330,7 +332,6 @@ function loadStyles(newVars) {
                             }
 
                         });
-                    });
 
 
                 };
@@ -669,13 +670,11 @@ less.refresh = function (reload, newVars) {
         if (e) {
             return error(e, sheet.href);
         }
-        require(['cs!polyfill-path/index'], function(CSSPolyfills) {
             var cssStr = root.toCSS(less);
             var p = new CSSPolyfills();
             p.run($('html'), cssStr, sheet.href, function(err, cssStr) {
                 createCSS(cssStr, sheet, env.lastModified);
             });
-        });
         // Run createCSS twice; once here so some styling shows up immediately.
         // It is called a second time once CSSPolyfill has completed.
         createCSS(root.toCSS(less), sheet, env.lastModified);
