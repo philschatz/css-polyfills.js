@@ -11,10 +11,11 @@ define ['cs!./simple'], (simple) ->
           <div class="to-move">Test</div>
           <div class="to-move">Passed</div>
         </div>
+        <p>Foo</p>
         <div class="bucket"></div>
       '''
       expected = '''
-        TestPassed
+        FooTestPassed
       '''
       simple(css, html, expected)
 
@@ -27,6 +28,7 @@ define ['cs!./simple'], (simple) ->
         <div class="initial">
           <div class="to-move">Test</div>
         </div>
+        ...
         <div class="bucket"></div>
         ...
         <div class="initial">
@@ -36,7 +38,7 @@ define ['cs!./simple'], (simple) ->
 
       '''
       expected = '''
-        Test...Passed
+        ...Test...Passed
       '''
       simple(css, html, expected)
 
@@ -57,20 +59,20 @@ define ['cs!./simple'], (simple) ->
       '''
       simple(css, html, expected)
 
-    it 'knows about :outside and moves the outside element too', () ->
-      css = '''
-        .to-move { move-to: bucket-1; }
-        .to-move:outside:after { content: 'Passed'; }
-        .bucket { content: pending(bucket-1); }
-      '''
-      html = '''
-        <div class="initial">
-          <div class="to-move">Test </div>
-        </div>
-        <div class="bucket"></div>
-      '''
-      expected = '''
-        Test Passed
-      '''
-      simple(css, html, expected)
+    # it 'knows about :outside and moves the outside element too', () ->
+    #   css = '''
+    #     .to-move { move-to: bucket-1; }
+    #     .to-move:outside:after { content: 'Passed'; }
+    #     .bucket { content: pending(bucket-1); }
+    #   '''
+    #   html = '''
+    #     <div class="initial">
+    #       <div class="to-move">Test </div>
+    #     </div>
+    #     <div class="bucket"></div>
+    #   '''
+    #   expected = '''
+    #     Test Passed
+    #   '''
+    #   simple(css, html, expected)
 

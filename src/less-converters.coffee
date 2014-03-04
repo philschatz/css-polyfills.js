@@ -1,4 +1,4 @@
-define [
+define 'polyfill-path/less-converters', [
   'underscore'
   'jquery'
   'cs!polyfill-path/selector-visitor'
@@ -13,8 +13,8 @@ define [
   ]
 
   freshClassIdCounter = 0
-  freshClass = () ->
-    return "js-polyfill-autoclass-#{freshClassIdCounter++}"
+  freshClass = (prefix='') ->
+    return "js-polyfill-autoclass-#{prefix}-#{freshClassIdCounter++}"
 
   class AutogenClass
     # selector: less.tree.Selector # Used for calculating the priority (ie 'p > * > em')
@@ -23,27 +23,55 @@ define [
 
 
   class PseudoExpander extends AbstractSelectorVisitor
-    # Modifies the AST so it should run pre-eval
-    isPreEvalVisitor: true
-    isPreVisitor: false
-    isReplacing: false
 
     # Generates elements of the form `<span class="js-polyfill-pseudo-before"></span>`
     PSEUDO_ELEMENT_NAME: 'span' # 'polyfillpseudo'
 
+    # Used to test if a selector is recognized by the browser by calling `node.querySelector(...)`
+    selectorTestNode = $('<span></span>')[0]
 
-    constructor: (root, @autogenClasses={}) ->
+    constructor: (root, @set, @interestingSet, plugins) ->
       super(arguments...)
 
-    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector, originalSelector) ->
+      @interestingRules = []
+      for plugin in plugins
+        for ruleName of plugin.rules or {}
+          @interestingRules[ruleName] = true
+
+
+    hasInterestingRules: (ruleSet) ->
+      # Always return true if the meta-rule `*` is in the set
+      return true if @interestingRules['*']
+      for rule in ruleSet.rules
+        return true if rule.name of @interestingRules
+
+
+    operateOnElements: (frame, ruleSet, domSelector, pseudoSelector, originalSelector, selectorStr) ->
       if not pseudoSelector.elements.length
         # Simple selector; no pseudoSelectors
-        className = freshClass()
-        $nodes.addClass("js-polyfill-autoclass #{className}")
-        @autogenClasses[className] = new AutogenClass(domSelector, ruleSet.rules)
+
+        # Test if the selector will work in a browser. If so, keep it. Otherwise, generate a new class for it.
+        try
+          selectorTestNode.querySelector(selectorStr)
+          isBrowserSelector = true
+        catch e
+          isBrowserSelector = false
+
+        if isBrowserSelector
+          autoClass = new AutogenClass(domSelector, ruleSet.rules)
+          @set.add(selectorStr, autoClass)
+          @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
+        else
+          className = freshClass('simple')
+          @getNodes(selectorStr).addClass("js-polyfill-autoclass #{className}")
+          selectorStr = ".#{className}"
+
+          @set.add(selectorStr, autoClass)
+          @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
 
       else
 
+        $nodes = @getNodes(selectorStr)
         $context = $nodes
         for pseudoNode in pseudoSelector.elements
           pseudoName = pseudoNode.value.replace('::', ':')
@@ -80,109 +108,16 @@ define [
             else
 
         if $context != $nodes
-          newClassName = freshClass()
+          newClassName = freshClass('pseudo')
           $context.addClass("js-polyfill-autoclass #{newClassName}")
 
-          # TODO: Pull out the old selector for use in calculating priorities
-          @autogenClasses[newClassName] = new AutogenClass(originalSelector, ruleSet.rules)
+          selectorStr = ".#{newClassName}"
+          autoClass = new AutogenClass(originalSelector, ruleSet.rules, @hasInterestingRules(ruleSet))
 
-
-  CSS_SELECTIVITY_COMPARATOR = (cls1, cls2) ->
-    elements1 = cls1.selector.elements
-    elements2 = cls2.selector.elements
-
-    compare = (iterator) ->
-      x1 = _.reduce elements1, iterator, 0
-      x2 = _.reduce elements2, iterator, 0
-      return -1 if x1 < x2
-      return 1 if x1 > x2
-      return 0
-
-    isIdAttrib = (n, el) -> ('#' == el.value?[0]) ? n+1 : n
-
-    isClassOrAttrib = (n, el) ->
-      return n+1 if /^\./.test(el.value) or /^\[/.test(el.value)
-      return n
-
-    isElementOrPseudo = (n, el) ->
-      return n+1 if /^:/.test(el.value) or /^[a-zA-Z]/.test(el.value)
-      return n
-
-    return  compare(isIdAttrib) or
-            compare(isClassOrAttrib) or
-            compare(isElementOrPseudo)
-
-
-  class CSSCanonicalizer
-
-    constructor: (@$root, @prevAutogenClasses) ->
-      @newAutogenClasses = {}
-      # Contains 'js-polyfill-autoclass-123 js-polyfill-autoclass-456' -> 'js-polyfill-autoclass-789'
-      @newAutogenClassMapping = {}
-
-    run: () ->
-      @$root.find('.js-polyfill-autoclass').each (i, node) =>
-        $node = $(node)
-        @visit($node)
-
-    visit: ($node) ->
-      prevClasses = []
-      for cls in $node.attr('class')?.split(' ') or []
-        if /^js-polyfill-autoclass-/.test(cls)
-          prevClasses.push(cls)
-          $node.removeClass(cls)
-
-
-      # Short circuit if we already generated a new, combined class
-      prevClassesStr = prevClasses.join(' ')
-      newClass = @newAutogenClassMapping[prevClassesStr]
-      if newClass
-        $node.addClass(newClass)
-      else
-        # Calculate a new class by concatenating all the existing class rules.
-        newRules = []
-        debugSelectors = [] # Used for debugging
-
-
-        prevClassObjects = _.map prevClasses, (cls) =>
-          autogenClass = @prevAutogenClasses[cls]
-          console.error("BUG: Autogenerated class rules not found #{cls}") if not autogenClass
-          return autogenClass
-
-
-        # Sort the prevClasses by specificity
-        # as defined in http://www.w3.org/TR/CSS21/cascade.html#specificity
-        # TODO: Move this into the `else` clause for performance
-        prevClassObjects.sort(CSS_SELECTIVITY_COMPARATOR)
-
-        for autogenClass in prevClassObjects
-
-          debugSelectors.push(autogenClass.selector.selectivityStr or autogenClass.selector)
-          for rule in autogenClass.rules
-            newRules.push(rule)
-
-        # Special-case `display: none;` because the DisplayNone plugin
-        # and FixedPointRunner are a little naive and do not stop early enough
-        foundDisplayRule = false
-        newRules.reverse()
-        i = 0
-        while i < newRules.length
-          if 'display' == newRules[i].name
-            if foundDisplayRule
-              newRules.splice(i, 1)
-              continue
-            else
-              foundDisplayRule = true
-          i += 1
-        newRules.reverse()
-
-        newClassName = freshClass()
-        $node.addClass(newClassName)
-        @newAutogenClasses[newClassName] = new AutogenClass(debugSelectors, newRules)
-        @newAutogenClassMapping[prevClassesStr] = newClassName
+          @set.add(selectorStr, autoClass)
+          @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
 
 
   return {
     PseudoExpander: PseudoExpander
-    CSSCanonicalizer: CSSCanonicalizer
   }

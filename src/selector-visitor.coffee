@@ -1,9 +1,11 @@
-define [
+define 'polyfill-path/selector-visitor', [
+  'underscore'
+  'less'
   'eventemitter2'
   # Add `:nth-of-type()` to jQuery
   'jquery'
   'polyfill-path/jquery-selectors'
-], (EventEmitter) ->
+], (_, less, EventEmitter) ->
 
   class LessVisitor extends EventEmitter
     constructor: (@$root) ->
@@ -37,30 +39,13 @@ define [
 
 
   return class AbstractSelectorVisitor extends LessVisitor
+    isPreEvalVisitor: false
+    isPreVisitor: false
+    isReplacing: false
 
-    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector, originalSelector) -> console.error('BUG: Need to implement this method')
+    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector, originalSelector) -> # Do nothing by default
 
-    visitRuleset: (node, visitArgs) ->
-      # Begin here.
-      @push {
-        selectors: []
-      }
-      # Build up a selector
-      # Note if it ends in ::before or ::after
-
-    visitParen: (node, visitArgs) ->
-      frame = @peek()
-      frame.isInParen = true
-
-    visitParenOut: (node, visitArgs) ->
-      frame = @peek()
-      frame.isInParen = false
-
-    visitSelector: (node, visitArgs) ->
-      frame = @peek()
-
-      # Selectors can be inside a tree.RuleSet or a tree.Paren. Ignore if it is in a paren.
-      return if frame.isInParen
+    doSelector: (node, visitArgs) ->
 
       isPseudo = (name) ->
         return _.isString(name) and
@@ -73,31 +58,54 @@ define [
           sliceIndex = i
           break
 
-      frame.selectors.push
+      return {
         originalSelector: node
         domSelector:      node.createDerived(node.elements.slice(0, sliceIndex))
         pseudoSelector:   node.createDerived(node.elements.slice(sliceIndex))
+      }
 
-    visitRulesetOut: (node) ->
-      frame = @pop()
+    # Expensive call and should be used only when you actually need to operate
+    # on the nodes matched by a selector (like expanding pseudoselectors or
+    # or converting a Sizzle selector to one the browser understands)
+    getNodes: (selectorStr) ->
+      return @$root.find(selectorStr)
 
-      for selector in frame.selectors
+    visitRuleset: (node) ->
+      return if node.root
 
-        # Make sure the actual jQuery string excludes pseudo-elements that were added.
-        selectorStr = []
-        for el in selector.domSelector.elements
-          selectorStr.push(el.toCSS({}))
-          # Include the pseudo-exclude on selector elements for `*` and `.classname`.
-          # Elements and ID's can be excluded because they will never match a pseudoselector
-          # since a pseudoselector may get an id but later, and the pseudoselector's element
-          # is not one that exists in HTML.
-          if /^[\*]/.test(el.value)
-            selectorStr.push(':not(.js-polyfill-pseudo)')
-        selectorStr = selectorStr.join('')
-        # selectorStr = selector.domSelector.toCSS({})
+      # These are arrays of selectors. Example:
+      # .a, .c { &.b { color: blue; } }
+      #
+      # Turns into [ [".a", "&.b"], [".c", "&.b" ] ]
 
-        @emit('selector.start', selectorStr)
-        $els = @$root.find(selectorStr)
-        @emit('selector.end', selectorStr, $els.length)
+      for path in node.paths
+        context = []
+        for sel in path
+          selector = @doSelector(sel)
 
-        @operateOnElements(frame, $els, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector)
+          # Make sure the actual jQuery string excludes pseudo-elements that were added.
+          selectorStr = []
+          for el in selector.domSelector.elements
+            selectorStr.push(el.toCSS({}))
+            # Include the pseudo-exclude on selector elements for `*` and `.classname`.
+            # Elements and ID's can be excluded because they will never match a pseudoselector
+            # since a pseudoselector may get an id but later, and the pseudoselector's element
+            # is not one that exists in HTML.
+            if /^[\*]/.test(el.value)
+              selectorStr.push(':not(.js-polyfill-pseudo)')
+          selectorStr = selectorStr.join('')
+          context.push(selectorStr)
+
+        selectorStr = context.join('')
+
+        @emit('selector.start', selectorStr, node.debugInfo)
+        # Send a function that will retreive the elements that were matched.
+        # For large files this is an expensive operation and should be used sparingly
+        @emit('selector.end', selectorStr, node.debugInfo, () => @getNodes(selectorStr))
+        # Ignore directives like `@page` or `@footnotes` or namespaced selectors like `mml|math`
+        if '@' in selectorStr or '|' in selectorStr
+
+        else
+          @operateOnElements(null, node, selector.domSelector, selector.pseudoSelector, selector.originalSelector, selectorStr)
+
+        context.pop()

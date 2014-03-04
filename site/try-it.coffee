@@ -44,7 +44,7 @@ require [
     if $runReloadButton.hasClass('trying-it')
       cssStyle = cssSession.getValue()
       p = new CSSPolyfills()
-      p.run $preview, cssStyle, (err, newCSS) ->
+      p.run $preview, cssStyle, 'STDINPUT', (err, newCSS) ->
         if err
           alert("Looks like the CSS is not well-formed. Please correct it (maybe a missing semicolon?) Details: #{err}")
         else

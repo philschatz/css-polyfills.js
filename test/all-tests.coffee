@@ -103,25 +103,27 @@ define [
     it 'supports the Cascading part of CSS by calculating selector specificity', () ->
       # See http://www.w3.org/TR/CSS21/cascade.html#specificity
       css = '''
-        div span    { content: '[div span]'; }
-        span[class] { content: '[span[class]]'; }
+        span[title] { content: '[span[title]]'; }
         span.foo    { content: '[span.foo]'; }
         span        { content: '[span]'; }
         .foo        { content: '[.foo]'; }
+        em span     { content: '[em span]'; }
       '''
       html = '''
-        <div><span class="foo">FAIL</span></div>
         <span class="foo">FAIL</span>
         <p><span>FAIL</span></p>
         <div class="foo">FAIL</div>
-        <span class="baz">FAIL</span>
+        <span title="baz">FAIL</span>
+        <em><span class="foo">FAIL</span></em>
+        <em><span>FAIL</span></em>
       '''
       expected = '''
         [span.foo]
-        [span.foo]
         [span]
         [.foo]
-        [span[class]]
+        [span[title]]
+        [span.foo]
+        [em span]
       '''
       simple(css, html, expected)
 
@@ -132,9 +134,14 @@ define [
           display: none;
           display: block;
         }
+        p {
+          display: block;
+          display: none;
+        }
       '''
       html = '''
         <div>Passed</div>
+        <p>Failed</p>
       '''
       expected = '''
         Passed
@@ -233,5 +240,49 @@ define [
       expected = '''
         [Some Text]
         PASSED
+      '''
+      simple(css, html, expected)
+
+    it 'prioritizes !important rules (simple)', () ->
+      css = '''
+        span { content: '[PASSED]' !important; }
+        span { content: '[FAILED]'; }
+      '''
+      html = '''
+        <span>failed</div>
+      '''
+      expected = '''
+        [PASSED]
+      '''
+      simple(css, html, expected)
+
+    it 'prioritizes !important rules but falls back if none can be satisfied', () ->
+      css = '''
+        span {
+          content: '[PASSED]';
+          content: unknown-function() !important;
+        }
+      '''
+      html = '''
+        <span>failed</span>
+      '''
+      expected = '''
+        [PASSED]
+      '''
+      simple(css, html, expected)
+
+
+    it 'correctly handles `display: none !important`', () ->
+      css = '''
+        span {
+          display: none !important;
+        }
+      '''
+      html = '''
+        <span>[FAILED]</span>
+        Test
+      '''
+      expected = '''
+        Test
       '''
       simple(css, html, expected)

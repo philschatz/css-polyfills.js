@@ -1,8 +1,12 @@
-define [
+define 'polyfill-path/plugins', [
   'underscore'
   'jquery'
   'less'
 ], (_, $, less) ->
+
+  # Each plugin provides a set of `functions` and/or `rules`.
+  # The arguments to a `function` are the `env` followed by the arguments passed to the function
+  # The arguments to a `rule` are the `env` followed by the value of the rule (as individual arguments that need to be evaluated)
 
 
   # Like a less.tree.Anonymous node but explicitly saying it contains a jQuery set.
@@ -88,101 +92,6 @@ define [
 
 
 
-
-
-  # Iterate over the DOM and calculate the counter state for each interesting node, adding in pseudo-nodes
-  parseCounters = (val, defaultNum) ->
-
-    # If the counter list contains a `-` then Less parses "name -1 othername 3" as Keyword, Dimension, Keyword, Dimension.
-    # Otherwise, Less parses "name 0 othername 3" as Anonymous["name 0 othername 3"].
-    # So, just convert it to a CSS string and have parseCounters split it up.
-    cssStr = val.toCSS({})
-
-    tokens = cssStr.split(' ')
-    counters = {}
-
-    # The counters to increment/reset can be 'none' in which case nothing is returned
-    return counters if 'none' == tokens[0]
-
-    # counter-reset can have the following structure: "counter1 counter2 -10 counter3 100 counter4 counter5"
-
-    i = 0
-    while i < tokens.length
-      name = tokens[i]
-      if i == tokens.length - 1
-        val = defaultNum
-      else if isNaN(parseInt(tokens[i+1])) # tokens[i+1] instanceof less.tree.Keyword
-        val = defaultNum
-      else # if tokens[i+1] instanceof less.tree.Dimension
-        val = parseInt(tokens[i+1])
-        i++
-      # else
-      #  console.error('ERROR! Unsupported Counter Token', tokens[i+1])
-      counters[name] = val
-      i++
-
-    counters
-
-
-  # These are used to format numbers and aren't terribly interesting
-
-  # convert integer to Roman numeral. From http://www.diveintopython.net/unit_testing/romantest.html
-  toRoman = (num) ->
-    romanNumeralMap = [
-      ['M',  1000]
-      ['CM', 900]
-      ['D',  500]
-      ['CD', 400]
-      ['C',  100]
-      ['XC', 90]
-      ['L',  50]
-      ['XL', 40]
-      ['X',  10]
-      ['IX', 9]
-      ['V',  5]
-      ['IV', 4]
-      ['I',  1]
-    ]
-    if not (0 < num < 5000)
-      console.warn 'ERROR: number out of range (must be 1..4999)'
-      return "#{num}"
-
-    result = ''
-    for [numeral, integer] in romanNumeralMap
-      while num >= integer
-        result += numeral
-        num -= integer
-    result
-
-  # Options are defined by http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type
-  numberingStyle = (num=0, style='decimal') ->
-    switch style
-      when 'decimal-leading-zero'
-        if num < 10 then "0#{num}"
-        else num
-      when 'lower-roman'
-        toRoman(num).toLowerCase()
-      when 'upper-roman'
-        toRoman(num)
-      when 'lower-latin'
-        if not (1 <= num <= 26)
-          console.warn 'ERROR: number out of range (must be 1...26)'
-          num
-        else
-          String.fromCharCode(num + 96)
-      when 'upper-latin'
-        if not (1 <= num <= 26)
-          console.warn 'ERROR: number out of range (must be 1...26)'
-          num
-        else
-          String.fromCharCode(num + 64)
-      when 'decimal'
-        num
-      else
-        console.warn "ERROR: Counter numbering not supported for list type #{style}. Using decimal."
-        num
-
-
   class TargetCounter
     functions:
       'x-parent': (env, valNode) ->
@@ -215,10 +124,12 @@ define [
             val = parseInt(val) if val and not isNaN(val)
 
         return val
+
       'counter': (env, counterNameNode, counterType=null) ->
         counterNameNode = counterNameNode.eval(env)
         console.warn("ERROR: counter(): expects a Keyword") if counterNameNode not instanceof less.tree.Keyword
-        return numberingStyle(env.state.counters?[counterNameNode.value], counterType?.eval(env).value)
+        return @numberingStyle(env.state.counters?[counterNameNode.value], counterType?.eval(env).value)
+
       'target-counter': (env, targetIdNode, counterNameNode, counterType=null) ->
         counterNameNode = counterNameNode.eval(env)
         console.warn("ERROR: target-counter(): expects a Keyword") if counterNameNode not instanceof less.tree.Keyword
@@ -230,14 +141,14 @@ define [
         if not env.helpers.markInterestingByHref(href)
           # It has already been marked
           targetEnv = env.helpers.interestingByHref(href)
-          return numberingStyle(targetEnv.state.counters?[counterName], counterType?.eval(env).value)
+          return @numberingStyle(targetEnv.state.counters?[counterName], counterType?.eval(env).value)
         # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
         return null
 
     rules:
       'counter-increment': (env, valNode) ->
         countersAndNumbers = valNode.eval(env)
-        counters = parseCounters(countersAndNumbers, 1)
+        counters = @parseCounters(countersAndNumbers, 1)
         env.state.counters ?= {}
         for counterName, counterValue of counters
           env.state.counters[counterName] ?= 0
@@ -247,7 +158,7 @@ define [
         return true # Understood the rule
       'counter-reset': (env, valNode) ->
         countersAndNumbers = valNode.eval(env)
-        counters = parseCounters(countersAndNumbers, 0)
+        counters = @parseCounters(countersAndNumbers, 0)
         env.state.counters ?= {}
         for counterName, counterValue of counters
           env.state.counters[counterName] = counterValue
@@ -256,11 +167,102 @@ define [
         return true # Understood the rule
 
 
+    # Iterate over the DOM and calculate the counter state for each interesting node, adding in pseudo-nodes
+    parseCounters: (val, defaultNum) ->
+
+      # If the counter list contains a `-` then Less parses "name -1 othername 3" as Keyword, Dimension, Keyword, Dimension.
+      # Otherwise, Less parses "name 0 othername 3" as Anonymous["name 0 othername 3"].
+      # So, just convert it to a CSS string and have parseCounters split it up.
+      cssStr = val.toCSS({})
+
+      tokens = cssStr.split(' ')
+      counters = {}
+
+      # The counters to increment/reset can be 'none' in which case nothing is returned
+      return counters if 'none' == tokens[0]
+
+      # counter-reset can have the following structure: "counter1 counter2 -10 counter3 100 counter4 counter5"
+
+      i = 0
+      while i < tokens.length
+        name = tokens[i]
+        if i == tokens.length - 1
+          val = defaultNum
+        else if isNaN(parseInt(tokens[i+1])) # tokens[i+1] instanceof less.tree.Keyword
+          val = defaultNum
+        else # if tokens[i+1] instanceof less.tree.Dimension
+          val = parseInt(tokens[i+1])
+          i++
+        # else
+        #  console.error('ERROR! Unsupported Counter Token', tokens[i+1])
+        counters[name] = val
+        i++
+
+      return counters
+
+
+    # These are used to format numbers and aren't terribly interesting
+
+    # Options are defined by http://www.w3.org/TR/CSS21/generate.html#propdef-list-style-type
+    numberingStyle: (num=0, style='decimal') ->
+      switch style
+        when 'decimal-leading-zero'
+          if num < 10 then "0#{num}"
+          else num
+        when 'lower-roman'
+          @toRoman(num).toLowerCase()
+        when 'upper-roman'
+          @toRoman(num)
+        when 'lower-latin'
+          if not (1 <= num <= 26)
+            console.warn 'ERROR: number out of range (must be 1...26)'
+            num
+          else
+            String.fromCharCode(num + 96)
+        when 'upper-latin'
+          if not (1 <= num <= 26)
+            console.warn 'ERROR: number out of range (must be 1...26)'
+            num
+          else
+            String.fromCharCode(num + 64)
+        when 'decimal'
+          num
+        else
+          console.warn "ERROR: Counter numbering not supported for list type #{style}. Using decimal."
+          num
+
+    # convert integer to Roman numeral. From http://www.diveintopython.net/unit_testing/romantest.html
+    toRoman: (num) ->
+      romanNumeralMap = [
+        ['M',  1000]
+        ['CM', 900]
+        ['D',  500]
+        ['CD', 400]
+        ['C',  100]
+        ['XC', 90]
+        ['L',  50]
+        ['XL', 40]
+        ['X',  10]
+        ['IX', 9]
+        ['V',  5]
+        ['IV', 4]
+        ['I',  1]
+      ]
+      if not (0 < num < 5000)
+        console.warn 'ERROR: number out of range (must be 1..4999)'
+        return "#{num}"
+
+      result = ''
+      for [numeral, integer] in romanNumeralMap
+        while num >= integer
+          result += numeral
+          num -= integer
+      result
 
 
 
 
-  # This is used by target-text and string-set
+  # This is used by `target-text` and `string-set`
   # Valid options are `content(contents)`, `content(before)`, `content(after)`, `content(first-letter)`
   # TODO: Add support for `content(env(...))`
   #
@@ -364,6 +366,7 @@ define [
 
   class StringSet
     functions:
+      # 'content': contentsFuncBuilder('contents') # Useful in general for setting `a[href] { content: content(); }`
       'x-string-set-content': contentsFuncBuilder('contents')
       'string': (env, stringNameNode) ->
         stringNameNode = stringNameNode.eval(env)
@@ -418,34 +421,6 @@ define [
         return true # Understood the rule
 
 
-
-  # checks that valNode is non-null and none of the values are less.tree.Call
-  # If they are in fact all values then it returns an array of strings-or-$els
-  evaluateValNode = (valNode) ->
-    ret = []
-    if valNode instanceof less.tree.Expression
-      vals = valNode.value
-    else
-      vals = [valNode]
-
-    for val in vals
-      if val instanceof less.tree.Quoted
-        ret.push(val.value)
-      else if val instanceof less.tree.Dimension
-        # Counters return a Number (less.tree.Dimension)
-        ret.push(val.value)
-      else if val instanceof less.tree.ArrayTreeNode
-        # Append the elements in order
-        for $el in val.values
-          ret.push($el)
-      else if val instanceof less.tree.Call
-        # console.log("Not finished evaluating yet: #{val.name}")
-        return null
-      else
-        console.warn("ERROR: Attempting to push something unknown. [#{val.value}]")
-        return null
-    return ret
-
   class ContentSet
     rules:
       'content': (env, valNode) ->
@@ -453,7 +428,7 @@ define [
         valNode = valNode.eval(env)
         # If valNode only contains values then all the function calls resolved
         # so update the contents of the node and mark it as `evaluated`
-        values = evaluateValNode(valNode)
+        values = @evaluateValNode(valNode)
         if values
 
           $node = env.helpers.$context
@@ -478,6 +453,46 @@ define [
           return 'RULE_COMPLETED' # Do not run this again (TODO: especially if it called 'pending()')
 
         return false
+
+    # checks that valNode is non-null and none of the values are less.tree.Call
+    # If they are in fact all values then it returns an array of strings-or-$els
+    evaluateValNode: (valNode) ->
+      ret = []
+      if valNode instanceof less.tree.Expression
+        vals = valNode.value
+      else
+        vals = [valNode]
+
+      for val in vals
+
+        if val instanceof less.tree.Expression
+          # For some reason LESS files may have nested expressions (not sure why)
+          r = @evaluateValNode(val)
+          return null if r == null
+          ret = ret.concat(r)
+
+        else if val instanceof less.tree.Quoted
+          ret.push(val.value)
+        else if val instanceof less.tree.Dimension
+          # Counters return a Number (less.tree.Dimension)
+          ret.push(val.value)
+        else if val instanceof less.tree.ArrayTreeNode
+          # Append the elements in order
+          for $el in val.values
+            ret.push($el)
+        else if val instanceof less.tree.Call
+          # console.log("Not finished evaluating yet: #{val.name}")
+          return null
+        else if val instanceof less.tree.URL
+          # console.log("Skipping content: url()")
+          return null
+        else if val instanceof less.tree.Comment
+          ret.push('')
+        else
+          console.warn("BUG: Attempting to set content: to something unknown. [#{val.value}]")
+          console.warn(JSON.stringify(val))
+          return null
+      return ret
 
 
 
