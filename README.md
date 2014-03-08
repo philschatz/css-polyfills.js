@@ -33,6 +33,16 @@ It is easy to have the CSS Polyfills run on CSS files in the browser. Just add t
 
 See [examples/browser.html](examples/browser.html) for an example.
 
+# Installing
+
+## Using npm or bower
+
+You can install using npm or bower by simply running `npm install css-polyfills` or `bower install css-polyfills`.
+
+## Building the source
+
+Just run `npm install` and then `grunt` (from [gruntjs.org](http://gruntjs.org).
+
 
 # All New Rules and Selectors
 
