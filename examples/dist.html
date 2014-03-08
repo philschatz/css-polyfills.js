@@ -12,7 +12,7 @@
 <div id="try-it-modal" tabindex="-1" role="dialog" aria-labelledby="tryItLabel" aria-hidden="true">
   <div class="modal-body">
 
-    <h3>Note: Make sure you run <code>./node_modules/.bin/r.js -o build.js</code> from the commandline first</h3>
+    <h3>Note: Make sure you run <code>npm install</code> and <code>grunt</code> from the commandline first to build <code>/dist/css-polyfills.js</code></h3>
 
     <p>This is a sandbox which uses the built version of css-polyfills. Click the <strong>Run It!</strong> button to apply the CSS to the HTML.</p>
     <table>
@@ -23,7 +23,10 @@
               <h3 class="panel-title">Edit the CSS:</h3>
             </div>
             <div class="panel-body">
-              <div class="css-editor"></div>
+              <div class="css-editor">.success {
+  background-color: lightgreen;
+}
+</div>
             </div>
           </div>
 
@@ -53,7 +56,9 @@
               <h3 class="panel-title">Edit the HTML:</h3>
             </div>
             <div class="panel-body">
-              <div class="html-editor"></div>
+              <div class="html-editor">&lt;div class="success">
+  If this is green it worked (after clicking "Run it!")
+  &lt;/div></div>
             </div>
           </div>
         </td>
@@ -64,11 +69,13 @@
 </div>
 
 
-
 <!-- **MUST** load this before requirejs -->
 <script src="../bower_components/coffee-script/extras/coffee-script.js"></script>
 
-<script src="../dist.js"></script>
+<script src="../bower_components/requirejs/require.js"></script>
+<script src="../bower_components/jquery/jquery.js"></script>
+
+<script src="../dist/css-polyfills.js"></script>
 <script src="../config.js"></script>
 <script>
 // Configure the ace editor
