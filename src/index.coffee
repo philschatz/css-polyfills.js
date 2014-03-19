@@ -135,11 +135,11 @@ define 'polyfill-path/index', [
 
         for {selector:selectorStr, data:autogenClass} in allSelectors
           {rules, selector} = autogenClass
-          originalSelectorStr = selector.toCSS(env).trim()
+          originalSelectorStr = selector
           if originalSelectorStr == selectorStr
             comment = ''
           else
-            comment = "/* BASED_ON: ... #{originalSelectorStr} */"
+            comment = "/* BASED_ON: #{originalSelectorStr} */"
 
           cssStrs.push("#{selectorStr} { #{comment}")
           for rule in rules

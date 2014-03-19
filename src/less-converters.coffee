@@ -12,9 +12,22 @@ define 'polyfill-path/less-converters', [
     'footnote-marker'
   ]
 
+  # Convert CSS selectors to a valid CSS class name
+  slugify = (str) ->
+    str = str.replace(/\ +/g, ' ')                      # Collapse multiple whitespaces
+    str = str.replace(/[^A-Za-z0-9>\[\]\(\)\.]/g, '-')  # Replace invalid chars with dash
+    str = str.replace(/[\[\]\(\)]/g, '_')               # Replace brackets with underscore
+    str = str.replace(/-+/g, '-')                       # Collapse multiple dashes
+    str = str.replace(/>/g, '-child-')                  # Replace '>' with '-child-'
+    str = str.replace(/\./g, '-dot-')                   # Replace '.' with '-dot-'
+    str = str.replace(/-+/g, '-')                       # Collapse multiple '-' to one
+    str = str.replace(/^-|-$/g, '')                     # Remove leading and trailing '-'
+    return str
+
   freshClassIdCounter = 0
-  freshClass = (prefix='') ->
-    return "js-polyfill-autoclass-#{prefix}-#{freshClassIdCounter++}"
+  freshClass = (selectorStr) ->
+    selectorStr = slugify(selectorStr)
+    return "js-polyfill-autoclass-#{freshClassIdCounter++}-#{selectorStr}"
 
   class AutogenClass
     # selector: less.tree.Selector # Used for calculating the priority (ie 'p > * > em')
@@ -58,11 +71,11 @@ define 'polyfill-path/less-converters', [
           isBrowserSelector = false
 
         if isBrowserSelector
-          autoClass = new AutogenClass(domSelector, ruleSet.rules)
+          autoClass = new AutogenClass(selectorStr, ruleSet.rules)
           @set.add(selectorStr, autoClass)
           @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
         else
-          className = freshClass('simple')
+          className = freshClass(selectorStr)
           @getNodes(selectorStr).addClass("js-polyfill-autoclass #{className}")
           selectorStr = ".#{className}"
 
@@ -86,6 +99,8 @@ define 'polyfill-path/less-converters', [
             $context = $context.find("> .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")
 
 
+          selectorStr += pseudoName # Append to `selectorStr` so the autogen class contains the pseudo elements
+
           switch pseudoName
             when ':before'          then simpleExpand('prepend', 'before')
             when ':after'           then simpleExpand('append',  'after')
@@ -108,11 +123,12 @@ define 'polyfill-path/less-converters', [
             else
 
         if $context != $nodes
-          newClassName = freshClass('pseudo')
+          newClassName = freshClass(selectorStr)
           $context.addClass("js-polyfill-autoclass #{newClassName}")
 
+          autoClass = new AutogenClass(selectorStr, ruleSet.rules, @hasInterestingRules(ruleSet))
+          # Do this **after** we create the AutogenClass so it squirrels away the _original_ selector for BASED_ON comment
           selectorStr = ".#{newClassName}"
-          autoClass = new AutogenClass(originalSelector, ruleSet.rules, @hasInterestingRules(ruleSet))
 
           @set.add(selectorStr, autoClass)
           @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
