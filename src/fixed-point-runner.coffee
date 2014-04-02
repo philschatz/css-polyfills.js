@@ -132,12 +132,12 @@ define 'polyfill-path/fixed-point-runner', [
       env.helpers =
           # $context: null
           interestingByHref: (href) =>
-            console.error 'BUG: href must start with a # character' if '#' != href[0]
+            console.error 'ERROR: href must start with a # character' if '#' != href[0]
             id = href.substring(1)
             console.error 'BUG: id was not marked and squirreled before being looked up' if not @squirreledEnv[id]
             return @squirreledEnv[id]
           markInterestingByHref: (href) =>
-            console.error 'BUG: href must start with a # character' if '#' != href[0]
+            console.error 'ERROR: href must start with a # character' if '#' != href[0]
             id = href.substring(1)
             wasAlreadyMarked = !! @squirreledEnv[id]
             if not wasAlreadyMarked
