@@ -32,7 +32,7 @@ define 'polyfill-path/less-converters', [
   class AutogenClass
     # selector: less.tree.Selector # Used for calculating the priority (ie 'p > * > em')
     # rules: [less.tree.Rule]
-    constructor: (@selector, @rules) ->
+    constructor: (@selectorStr, @elements, @rules) ->
 
 
   class PseudoExpander extends AbstractSelectorVisitor
@@ -71,7 +71,7 @@ define 'polyfill-path/less-converters', [
           isBrowserSelector = false
 
         if isBrowserSelector
-          autoClass = new AutogenClass(selectorStr, ruleSet.rules)
+          autoClass = new AutogenClass(selectorStr, originalSelector.elements, ruleSet.rules)
           @set.add(selectorStr, autoClass)
           @interestingSet.add(selectorStr, autoClass) if @hasInterestingRules(ruleSet)
         else
@@ -126,7 +126,7 @@ define 'polyfill-path/less-converters', [
           newClassName = freshClass(selectorStr)
           $context.addClass("js-polyfill-autoclass #{newClassName}")
 
-          autoClass = new AutogenClass(selectorStr, ruleSet.rules, @hasInterestingRules(ruleSet))
+          autoClass = new AutogenClass(selectorStr, pseudoSelector.elements, ruleSet.rules, @hasInterestingRules(ruleSet))
           # Do this **after** we create the AutogenClass so it squirrels away the _original_ selector for BASED_ON comment
           selectorStr = ".#{newClassName}"
 

@@ -100,55 +100,6 @@ define [
       simple(css, html, expected)
 
 
-    it 'supports the Cascading part of CSS by calculating selector specificity', () ->
-      # See http://www.w3.org/TR/CSS21/cascade.html#specificity
-      css = '''
-        span[title] { content: '[span[title]]'; }
-        span.foo    { content: '[span.foo]'; }
-        span        { content: '[span]'; }
-        .foo        { content: '[.foo]'; }
-        em span     { content: '[em span]'; }
-      '''
-      html = '''
-        <span class="foo">FAIL</span>
-        <p><span>FAIL</span></p>
-        <div class="foo">FAIL</div>
-        <span title="baz">FAIL</span>
-        <em><span class="foo">FAIL</span></em>
-        <em><span>FAIL</span></em>
-      '''
-      expected = '''
-        [span.foo]
-        [span]
-        [.foo]
-        [span[title]]
-        [span.foo]
-        [em span]
-      '''
-      simple(css, html, expected)
-
-
-    it 'removes an element only when display:none is the last display rule', () ->
-      css = '''
-        div {
-          display: none;
-          display: block;
-        }
-        p {
-          display: block;
-          display: none;
-        }
-      '''
-      html = '''
-        <div>Passed</div>
-        <p>Failed</p>
-      '''
-      expected = '''
-        Passed
-      '''
-      simple(css, html, expected)
-
-
     it 'evaluates each rule type only once (move-to:, counter-*:, content: are not evaluated after the first successful evaluation)', () ->
       css = '''
         div {
@@ -212,7 +163,6 @@ define [
     it 'supports target-text(..., content("> .selector"))', () ->
       css = '''
         a[href] {
-          content: 'FAILED';
           content: target-text(attr(href), content('> .title'));
         }
       '''
@@ -225,6 +175,7 @@ define [
         PASSED
       '''
       simple(css, html, expected)
+
 
     it 'does not match the rule when content("> .selector") is null', () ->
       css = '''
@@ -284,5 +235,88 @@ define [
       '''
       expected = '''
         Test
+      '''
+      simple(css, html, expected)
+
+
+
+
+  describe 'Specificity and Ordering', () ->
+
+    it 'supports the Cascading part of CSS by calculating selector specificity', () ->
+      # See http://www.w3.org/TR/CSS21/cascade.html#specificity
+      css = '''
+        span[title] { content: '[span[title]]'; }
+        span.foo    { content: '[span.foo]'; }
+        span        { content: '[span]'; }
+        .foo        { content: '[.foo]'; }
+        em span     { content: '[em span]'; }
+      '''
+      html = '''
+        <span class="foo">FAIL</span>
+        <p><span>FAIL</span></p>
+        <div class="foo">FAIL</div>
+        <span title="baz">FAIL</span>
+        <em><span class="foo">FAIL</span></em>
+        <em><span>FAIL</span></em>
+      '''
+      expected = '''
+        [span.foo]
+        [span]
+        [.foo]
+        [span[title]]
+        [span.foo]
+        [em span]
+      '''
+      simple(css, html, expected)
+
+
+    it 'removes an element only when display:none is the last display rule', () ->
+      css = '''
+        div {
+          display: none;
+          display: block;
+        }
+        p {
+          display: block;
+          display: none;
+        }
+      '''
+      html = '''
+        <div>Passed</div>
+        <p>Failed</p>
+      '''
+      expected = '''
+        Passed
+      '''
+      simple(css, html, expected)
+
+
+    it 'supports simple content followed by more simple content', () ->
+      css = '''
+        p {
+          content: 'FAILED';
+          content: 'PASSED';
+        }
+      '''
+      html = '''
+        <p>FAIL</p>
+      '''
+      expected = '''
+        PASSED
+      '''
+      simple(css, html, expected)
+
+
+    it 'supports simple content followed by more simple content (2 selectors)', () ->
+      css = '''
+        p { content: 'FAILED'; }
+        p { content: 'PASSED'; }
+      '''
+      html = '''
+        <p>FAIL</p>
+      '''
+      expected = '''
+        PASSED
       '''
       simple(css, html, expected)
