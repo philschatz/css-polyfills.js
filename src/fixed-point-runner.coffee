@@ -125,6 +125,29 @@ define 'polyfill-path/fixed-point-runner', [
     return (ruleName == name) or ('*' == ruleName)
 
 
+  # Wrap all `plugin.funcs` so they can be included in the `less.tree.functions` list.
+  # Some examples: `target-text()`, `pending()`
+  CSS_FUNCTION_WRAPPER = (funcName, func) -> () ->
+    ret = func.apply(@, [@env, arguments...])
+    # If ret is null or undefined then ('' is OK) mark that is was not evaluated
+    # by returning the original less.tree.Call
+    if not ret?
+      return new less.tree.Call(funcName, _.toArray(arguments))
+    else if ret.toCSS
+      # If the returned node is already a `less.tree` Node then return it.
+      return ret
+    else if ret instanceof Array
+      # HACK: Use the Less AST so we do not need to include 1 file just to not reuse a similar class
+      return new less.tree.ArrayTreeNode(ret)
+    else if _.isString(ret)
+      # Just being a good LessCSS user. Could have just returned Anonymous
+      return new less.tree.Quoted("'#{ret}'", ret)
+    else if _.isNumber(ret)
+      # Just being a good LessCSS user. Could have just returned Anonymous
+      return new less.tree.Dimension(ret)
+    else
+      return new less.tree.Anonymous(ret)
+
 
   return class FixedPointRunner extends EventEmitter
     # plugins: []
@@ -301,28 +324,7 @@ define 'polyfill-path/fixed-point-runner', [
       # Register all the functions with less.tree.functions
       for funcName, func of @functions
         # Wrap all the functions and attach them to `less.tree.functions`
-        wrapper = (funcName, func) -> () ->
-          ret = func.apply(@, [@env, arguments...])
-          # If ret is null or undefined then ('' is OK) mark that is was not evaluated
-          # by returning the original less.tree.Call
-          if not ret?
-            return new less.tree.Call(funcName, _.toArray(arguments))
-          else if ret.toCSS
-            # If the returned node is already a `less.tree` Node then return it.
-            return ret
-          else if ret instanceof Array
-            # HACK: Use the Less AST so we do not need to include 1 file just to not reuse a similar class
-            return new less.tree.ArrayTreeNode(ret)
-          else if _.isString(ret)
-            # Just being a good LessCSS user. Could have just returned Anonymous
-            return new less.tree.Quoted("'#{ret}'", ret)
-          else if _.isNumber(ret)
-            # Just being a good LessCSS user. Could have just returned Anonymous
-            return new less.tree.Dimension(ret)
-          else
-            return new less.tree.Anonymous(ret)
-
-        less.tree.functions[funcName] = wrapper(funcName, func)
+        less.tree.functions[funcName] = CSS_FUNCTION_WRAPPER(funcName, func)
 
 
     # Detach all the functions so `lessNode.toCSS()` will generate the CSS
