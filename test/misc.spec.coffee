@@ -327,3 +327,17 @@ define ['cs!test/simple'], (simple) ->
         PASSED
       '''
       simple(css, html, expected)
+
+
+    it 'works when hiding a node that has content: attr(...)', () ->
+      css = '''
+        p:before { content: attr(foo); }
+        p:before { display: none; }
+      '''
+      html = '''
+        <p foo="FAILED">PASSED</p>
+      '''
+      expected = '''
+        PASSED
+      '''
+      simple(css, html, expected)

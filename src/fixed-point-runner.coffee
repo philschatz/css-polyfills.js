@@ -1,10 +1,9 @@
 define 'polyfill-path/fixed-point-runner', [
   'underscore'
-  'jquery'
   'less'
   'eventemitter2'
   'selector-set'
-], (_, $, less, EventEmitter, SelectorSet) ->
+], (_, less, EventEmitter, SelectorSet) ->
 
 
   # There is a bit of ugliness with the `data-js-polyfill-rule-#{ruleName}` attributes.
@@ -195,7 +194,7 @@ define 'polyfill-path/fixed-point-runner', [
       env.state = {} # plugins will add `counters`, `strings`, `buckets`, etc
 
       env.helpers =
-          # $context: null
+          # contextNode: null
           interestingByHref: (href) =>
             console.error 'ERROR: href must start with a # character' if '#' != href[0]
             id = href.substring(1)
@@ -256,11 +255,11 @@ define 'polyfill-path/fixed-point-runner', [
 
 
     evalNode: (env, domnode) ->
-      @emit('tick.node', $(domnode))
+      @emit('tick.node', domnode)
       # If this is false after looping over the rules then remove the interesting class
       somethingNotCompleted = false
 
-      env.helpers.$context = $(domnode)
+      env.helpers.contextNode = domnode
 
       autogenRules = @pullRulesFromCache(domnode)
 
@@ -337,7 +336,7 @@ define 'polyfill-path/fixed-point-runner', [
         targetEnv =
           helpers: _.clone(env.helpers)
           state: JSON.parse(JSON.stringify(_.omit(env.state, 'buckets'))) # Perform a deep clone
-        targetEnv.helpers.$context = $(domnode)
+        targetEnv.helpers.contextNode = domnode
         @squirreledEnv[domnode.id] = targetEnv
 
       # If everything was understood then remove the interesting class

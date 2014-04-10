@@ -15,7 +15,9 @@ define 'polyfill-path/extras', [
         tagNameNode = tagNameNode.eval(env)
         console.warn("ERROR: move-to: expects a Quoted") if tagNameNode not instanceof less.tree.Quoted
 
-        oldTagName = env.helpers.$context[0].tagName.toLowerCase()
+        context = env.helpers.contextNode
+
+        oldTagName = context.tagName.toLowerCase()
         tagName = tagNameNode.value.toLowerCase()
 
         if oldTagName != tagName
@@ -24,14 +26,14 @@ define 'polyfill-path/extras', [
           # This requires moving the classes and data() over too
 
           $newEl = $("<#{tagName}></#{tagName}>")
-          $newEl.addClass(env.helpers.$context.attr('class'))
+          $newEl.addClass(context.className)
           $newEl.attr('data-js-polyfill-tagname-orig', oldTagName)
-          $newEl.data(env.helpers.$context.data())
+          $newEl.data($(context).data())
 
-          $newEl.append(env.helpers.$context.contents())
-          env.helpers.$context.replaceWith($newEl)
+          $newEl.append(context.childNodes)
+          context.parentNode.replaceChild($newEl[0], context)
 
-          env.helpers.$context = $newEl
+          env.helpers.contextNode = $newEl[0]
           env.helpers.didSomthingNonIdempotent('x-tag-name')
 
           return 'RULE_COMPLETED' # Do not run this again
@@ -41,8 +43,8 @@ define 'polyfill-path/extras', [
         attributeNameNode = attributeNameNode.eval(env)
         console.warn("ERROR: x-ensure-id: expects a Quoted") if attributeNameNode not instanceof less.tree.Quoted
 
-        if not env.helpers.$context.attr(attributeNameNode.value)
-          env.helpers.$context.attr(attributeNameNode.value, uniqueId())
+        if not env.helpers.contextNode.getAttribute(attributeNameNode.value)
+          env.helpers.contextNode.setAttribute(attributeNameNode.value, uniqueId())
           env.helpers.didSomthingNonIdempotent('x-ensure-id')
 
           return 'RULE_COMPLETED' # Do not run this again
@@ -79,7 +81,7 @@ define 'polyfill-path/extras', [
             else
               str.push(arg.value)
 
-          env.helpers.$context.attr(attrName, str.join(''))
+          env.helpers.contextNode.setAttribute(attrName, str.join(''))
           # env.helpers.didSomthingNonIdempotent('x-attr')
 
         # More than one string can be set at once
