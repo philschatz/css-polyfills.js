@@ -1,5 +1,6 @@
 define 'polyfill-path/index', [
   'underscore'
+  # This is ONLY here for css-diff and css-coverage's benefit (see bottom of this file)
   'jquery'
   'less'
   'eventemitter2'
@@ -48,8 +49,10 @@ define 'polyfill-path/index', [
       if not @doNotIncludeDefaultPlugins
         @plugins = @plugins.concat(CSSPolyfills.DEFAULT_PLUGINS)
 
-    runTree: ($root, lessTree, cb=null) ->
+    runTree: (rootNode, lessTree, cb=null) ->
       @emit('start')
+
+      rootNode = rootNode[0] if rootNode.jquery
 
       bindAll = (emitter, eventNames) =>
         _.each eventNames, (name) =>
@@ -164,7 +167,7 @@ define 'polyfill-path/index', [
         lessTree.toCSS(env)
 
       runFixedPoint = (plugins) ->
-        fixedPointRunner = new FixedPointRunner($root[0], plugins, interestingSet)
+        fixedPointRunner = new FixedPointRunner(rootNode, plugins, interestingSet)
 
         bindAll fixedPointRunner, [
           'runner.start'
@@ -178,7 +181,7 @@ define 'polyfill-path/index', [
 
       if @pseudoExpanderClass
 
-        pseudoExpander = new (@pseudoExpanderClass)($root, allSet, interestingSet, @plugins)
+        pseudoExpander = new (@pseudoExpanderClass)(rootNode, allSet, interestingSet, @plugins)
         bindAll pseudoExpander, [
           'selector.start'
           'selector.end'
@@ -205,10 +208,10 @@ define 'polyfill-path/index', [
 
       @emit('end')
 
-    run: ($root, cssStyle, filename, cb) ->
+    run: (rootNode, cssStyle, filename, cb) ->
       @parse cssStyle, filename, (err, lessTree) =>
         return cb?(err, lessTree) if err
-        @runTree($root, lessTree, cb)
+        @runTree(rootNode, lessTree, cb)
 
     # Parse a CSS/LESS file with the correct environment variables for coverage
     parse: (cssStyle, filename, cb) ->

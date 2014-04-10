@@ -17,7 +17,7 @@ define ['jquery', 'chai', 'cs!polyfill-path/index'], ($, chai, CSSPolyfills) ->
     $content.append(html)
 
     p = new CSSPolyfills()
-    p.run $content, css, 'STDINPUT', (err, cssStr) ->
+    p.run $content[0], css, 'STDINPUT', (err, cssStr) ->
       $content.remove()
       strExpect(expected, $content.text())
 

@@ -3,12 +3,13 @@ define 'polyfill-path/selector-visitor', [
   'less'
   'eventemitter2'
   # Add `:nth-of-type()` to jQuery
+  # TODO: Add it to Sizzle instead
   'jquery'
   'polyfill-path/jquery-selectors'
 ], (_, less, EventEmitter) ->
 
   class LessVisitor extends EventEmitter
-    constructor: (@$root) ->
+    constructor: (@rootNode) ->
       @_visitor = new less.tree.visitor(@)
       @_frames = []
 
@@ -43,7 +44,7 @@ define 'polyfill-path/selector-visitor', [
     isPreVisitor: false
     isReplacing: false
 
-    operateOnElements: (frame, $nodes, ruleSet, domSelector, pseudoSelector, originalSelector) -> # Do nothing by default
+    operateOnElements: (frame, nodes, ruleSet, domSelector, pseudoSelector, originalSelector) -> # Do nothing by default
 
     doSelector: (node, visitArgs) ->
 
@@ -71,10 +72,10 @@ define 'polyfill-path/selector-visitor', [
       # Use the browser's querySelector and if it fails (ie it has something fancy like ':has()`')
       # use Sizzle
       try
-        els = @$root[0].querySelectorAll(selectorStr)
-        return $(els)
+        return @rootNode.querySelectorAll(selectorStr)
       catch err
-        return @$root.find(selectorStr)
+        # TODO: Replace this with Sizzle
+        return $(@rootNode).find(selectorStr)
 
     visitRuleset: (node) ->
       return if node.root
