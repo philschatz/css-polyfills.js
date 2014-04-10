@@ -34,6 +34,9 @@ define 'polyfill-path/extras', [
           env.helpers.$context = $newEl
           env.helpers.didSomthingNonIdempotent('x-tag-name')
 
+          return 'RULE_COMPLETED' # Do not run this again
+        return false
+
       'x-ensure-id': (env, attributeNameNode) ->
         attributeNameNode = attributeNameNode.eval(env)
         console.warn("ERROR: x-ensure-id: expects a Quoted") if attributeNameNode not instanceof less.tree.Quoted
@@ -41,6 +44,9 @@ define 'polyfill-path/extras', [
         if not env.helpers.$context.attr(attributeNameNode.value)
           env.helpers.$context.attr(attributeNameNode.value, uniqueId())
           env.helpers.didSomthingNonIdempotent('x-ensure-id')
+
+          return 'RULE_COMPLETED' # Do not run this again
+        return false
 
 
       # Copy/pasta from string-set
