@@ -17,6 +17,7 @@ module.exports = (grunt) ->
           'dist/helper-after-libs.js': ['src/helper-after-libs.coffee']
           'dist/css-polyfills-coffee.js': [
             # The order of these is important because we use a much simpler AMD loader than RequireJS
+            'src/selector-tree.coffee'
             'src/fixed-point-runner.coffee'
             'src/selector-visitor.coffee'
             'src/extras.coffee'
