@@ -1,12 +1,4 @@
-define [
-  'cs!test/simple'
-  'cs!test/website.spec'
-  'cs!test/counters.spec'
-  'cs!test/move-to.spec'
-  'cs!test/string-set.spec'
-  'cs!test/impossible.spec'
-], (simple) ->
-
+define ['cs!test/simple'], (simple) ->
 
   describe 'Misc CSS Selectors', () ->
     it 'supports double-colon pseudo selectors', () ->
@@ -317,6 +309,21 @@ define [
         <p>FAIL</p>
       '''
       expected = '''
+        PASSED
+      '''
+      simple(css, html, expected)
+
+
+    it 'supports Sizzle selectors (:has())', () ->
+      css = '''
+        p:has(span) { content: 'PASSED'; }
+      '''
+      html = '''
+        <p>UNTOUCHED</p>
+        <p><span>FAIL</span></p>
+      '''
+      expected = '''
+        UNTOUCHED
         PASSED
       '''
       simple(css, html, expected)
