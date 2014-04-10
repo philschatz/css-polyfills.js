@@ -56,7 +56,7 @@ define 'polyfill-path/fixed-point-runner', [
       return n
 
     isElementOrPseudo = (n, el) ->
-      return n+1 if /^:/.test(el.value) or /^[a-zA-Z]/.test(el.value)
+      return n+1 if (el.value instanceof less.tree.Attribute) or ':' == el.value[0] or /^[a-zA-Z]/.test(el.value)
       return n
 
     return  compare(isIdAttrib) or
