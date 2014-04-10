@@ -68,7 +68,13 @@ define 'polyfill-path/selector-visitor', [
     # on the nodes matched by a selector (like expanding pseudoselectors or
     # or converting a Sizzle selector to one the browser understands)
     getNodes: (selectorStr) ->
-      return @$root.find(selectorStr)
+      # Use the browser's querySelector and if it fails (ie it has something fancy like ':has()`')
+      # use Sizzle
+      try
+        els = @$root[0].querySelectorAll(selectorStr)
+        return $(els)
+      catch err
+        return @$root.find(selectorStr)
 
     visitRuleset: (node) ->
       return if node.root

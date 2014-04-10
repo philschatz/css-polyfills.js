@@ -132,7 +132,7 @@ define 'polyfill-path/index', [
 
         start = new Date()
         # Use the `addedSelectors` which were monkey patched in using the code above
-        allSelectors = outputRulesets.addedSelectors
+        allSelectors = outputRulesets.addedSelectors or []
 
         for {selector:selectorStr, data:autogenClass} in allSelectors
           {rules, selector} = autogenClass
@@ -164,7 +164,7 @@ define 'polyfill-path/index', [
         lessTree.toCSS(env)
 
       runFixedPoint = (plugins) ->
-        fixedPointRunner = new FixedPointRunner($root, plugins, interestingSet)
+        fixedPointRunner = new FixedPointRunner($root[0], plugins, interestingSet)
 
         bindAll fixedPointRunner, [
           'runner.start'

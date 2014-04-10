@@ -154,7 +154,7 @@ define 'polyfill-path/plugins', [
           env.state.counters[counterName] ?= 0
           env.state.counters[counterName] += counterValue
         # For debugging, squirrel the counter state on the element
-        env.helpers.$context.attr('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
+        # env.helpers.$context.attr('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
         return true # Understood the rule
       'counter-reset': (env, valNode) ->
         countersAndNumbers = valNode.eval(env)
@@ -163,7 +163,7 @@ define 'polyfill-path/plugins', [
         for counterName, counterValue of counters
           env.state.counters[counterName] = counterValue
         # For debugging, squirrel the counter state on the element
-        env.helpers.$context.attr('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
+        # env.helpers.$context.attr('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
         return true # Understood the rule
 
 
@@ -432,23 +432,44 @@ define 'polyfill-path/plugins', [
         if values
 
           $node = env.helpers.$context
+          domnode = $node[0]
           # Do not replace pseudo elements
-          $pseudoEls = $node.children('.js-polyfill-pseudo')
-          $pseudoBefore = $pseudoEls.not(':not(.js-polyfill-pseudo-before)')
-          $pseudoRest = $pseudoEls.not($pseudoBefore)
+          # $pseudoEls = $node.children('.js-polyfill-pseudo')
+          # $pseudoAfter = $pseudoEls.not(':not(.js-polyfill-pseudo-after)')
+          # $pseudoRest = $pseudoEls.not($pseudoAfter)
 
-          $node.empty()
-          # Fill in the before pseudo elements
-          $node.append($pseudoBefore)
+
+          # Remove non-pseudo elements
+          # $node.children().not($pseudoEls).remove()
+          # Remove text nodes
+          # $texts = $node.contents().filter () ->
+          #   return (@nodeType == 3)
+          # $texts.remove();
+          for child, i in domnode.childNodes
+            if not child.classList?.contains('js-polyfill-pseudo') # '?' because text nodes do not have classList
+              domnode.removeChild(child)
+              i -= 1
 
           # Append 1-by-1 because they values may be multiple jQuery sets (like `content: pending(bucket1) pending(bucket2)`)
+          pseudoAfter = domnode.querySelector('.js-polyfill-pseudo-after')
           for val in values
-            $node.append(val)
+            switch typeof val
+              when 'string' then val = document.createTextNode(val)
+              when 'number' then val = document.createTextNode(val)
+              else
+                if val.jquery
+                  throw new Error('BUG: content rule only supports 1 dom node at a time for now') if val.length != 1
+                  val = val[0]
+                else
+                  throw new Error('BUG: content rule only supports string, number, and jQuery objects')
 
-          # Fill in the rest of the pseudo elements
-          $node.append($pseudoRest)
+            # Insert before all the `:after` pseudo elements
+            if pseudoAfter
+              domnode.insertBefore(val, pseudoAfter)
+            else
+              domnode.appendChild(val)
 
-          $node.addClass('js-polyfill-evaluated')
+          domnode.classList.add('js-polyfill-evaluated')
 
           return 'RULE_COMPLETED' # Do not run this again (TODO: especially if it called 'pending()')
 
