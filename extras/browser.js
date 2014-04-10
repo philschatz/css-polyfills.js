@@ -300,6 +300,7 @@ function loadStyles(newVars) {
         if (style.type.match(typePattern)) {
             var env = new less.tree.parseEnv(less),
                 lessText = style.innerHTML || '';
+                lessText = lessText.replace(/&gt;/g, '>');
             env.filename = document.location.href.replace(/#.*$/, '');
 
             if (newVars || varsPre) {
