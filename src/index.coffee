@@ -4,12 +4,13 @@ define 'polyfill-path/index', [
   'less'
   'eventemitter2'
   'selector-set'
+  'cs!polyfill-path/selector-tree'
   'cs!polyfill-path/less-converters'
   'cs!polyfill-path/plugins'
   'cs!polyfill-path/extras'
   'cs!polyfill-path/fixed-point-runner'
   'cs!polyfill-path/selector-visitor' # Squirrel for css-coverage and other projects that customize plugins
-], (_, $, less, EventEmitter, SelectorSet, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
+], (_, $, less, EventEmitter, SelectorSet, SelectorTree, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
 
 
   PseudoExpander    = LESS_CONVERTERS.PseudoExpander
@@ -151,7 +152,7 @@ define 'polyfill-path/index', [
       # Create 2 selector sets; one for all the selectors and one for only the
       # "interesting" selectors that fixed-point cares about.
       allSet = new SelectorSet()
-      interestingSet = new SelectorSet()
+      interestingSet = new SelectorTree()
 
       changeLessTree = (plugins) ->
         env = new less.tree.evalEnv()
