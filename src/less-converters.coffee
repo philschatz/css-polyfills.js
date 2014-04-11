@@ -82,9 +82,13 @@ define 'polyfill-path/less-converters', [
           # quicker and easier to look up (esp if DOM nodes move)
           className = freshClass(selectorStr)
           for node in @getNodes(selectorStr)
-            node.classList.add('js-polyfill-autoclass')
-            node.classList.add('js-polyfill-interesting')
-            node.classList.add(className)
+            # node.classList can be empty
+            if node.classList
+              node.classList.add('js-polyfill-autoclass')
+              node.classList.add('js-polyfill-interesting')
+              node.classList.add(className)
+            else
+              node.className = "js-polyfill-autoclass js-polyfill-interesting #{className}"
 
           selectorStr = ".#{className}"
           autoClass = new AutogenClass(selectorStr, originalSelector.elements, ruleSet.rules)
