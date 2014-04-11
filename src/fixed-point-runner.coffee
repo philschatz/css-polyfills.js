@@ -373,11 +373,17 @@ define 'polyfill-path/fixed-point-runner', [
           el.classList.remove(className)
 
       # @$root.find(".js-polyfill-autoclass").each (i, node) ->
-      for node in @rootNode.querySelectorAll('.js-polyfill-autoclass')
+      # *NOTE:* Keep the autogen classes if the original selector was not a valid browser selector
+      for node in @rootNode.querySelectorAll('.js-polyfill-autoclass:not(.js-polyfill-autoclass-keep)')
         classes = node.className
         if classes
           classes = classes.replace(/\ ?js-polyfill-autoclass.*/, '')
-          node.className = classes
+          # If nothing is left then just remove the class attribute
+          # so it does not remain a dangling boolean attribute
+          if classes
+            node.className = classes
+          else
+            node.removeAttribute('class')
 
       @emit('runner.end')
 
