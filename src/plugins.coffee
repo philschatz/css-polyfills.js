@@ -392,11 +392,7 @@ define 'polyfill-path/plugins', [
           # Otherwise, return null (not falsy!!!) (Cannot be computed yet)
 
           # This is a replacement for `$context.is(selector)`
-          matches = (el, selector) ->
-            m = el.matches || el.matchesSelector || el.msMatchesSelector || el.mozMatchesSelector || el.webkitMatchesSelector || el.oMatchesSelector
-            m.call(el, selector)
-
-          if matches(context, selectorNode.value)
+          if Sizzle.matchesSelector(context, selectorNode.value)
             return ''
           else
             return null
