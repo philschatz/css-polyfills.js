@@ -1,8 +1,9 @@
 define 'polyfill-path/selector-visitor', [
   'underscore'
   'less'
+  'sizzle'
   'eventemitter2'
-], (_, less, EventEmitter) ->
+], (_, less, Sizzle, EventEmitter) ->
 
   class LessVisitor extends EventEmitter
     constructor: (@rootNode) ->
