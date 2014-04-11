@@ -25,15 +25,15 @@ define 'polyfill-path/extras', [
           # Change the tagName of an element by replacing the element.
           # This requires moving the classes and data() over too
 
-          $newEl = $("<#{tagName}></#{tagName}>")
-          $newEl.addClass(context.className)
-          $newEl.attr('data-js-polyfill-tagname-orig', oldTagName)
-          $newEl.data($(context).data())
+          newEl = document.createElement(tagName)
+          newEl.className = context.className
+          newEl.setAttribute('data-js-polyfill-tagname-orig', oldTagName)
 
-          $newEl.append(context.childNodes)
+          for child of context.childNodes
+            newEl.appendChild(child)
           context.parentNode.replaceChild($newEl[0], context)
 
-          env.helpers.contextNode = $newEl[0]
+          env.helpers.contextNode = newEl
           env.helpers.didSomthingNonIdempotent('x-tag-name')
 
           return 'RULE_COMPLETED' # Do not run this again

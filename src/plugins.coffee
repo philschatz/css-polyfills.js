@@ -345,7 +345,7 @@ define 'polyfill-path/plugins', [
       selector = typeNode.value
       # TODO: add support for pseudoselectors (including complex ones like ::outside::before)
 
-      # querySelectorAll does not support `>` as the first character so use sizzle
+      # TODO: Use Sizzle directly
       $els = $(env.helpers.contextNode).find(selector)
       # If nothing is matched then do not resolve (so another rule is matched)
       return if not $els[0]
@@ -475,17 +475,7 @@ define 'polyfill-path/plugins', [
 
           domnode = env.helpers.contextNode
           # Do not replace pseudo elements
-          # $pseudoEls = $node.children('.js-polyfill-pseudo')
-          # $pseudoAfter = $pseudoEls.not(':not(.js-polyfill-pseudo-after)')
-          # $pseudoRest = $pseudoEls.not($pseudoAfter)
-
-
           # Remove non-pseudo elements
-          # $node.children().not($pseudoEls).remove()
-          # Remove text nodes
-          # $texts = $node.contents().filter () ->
-          #   return (@nodeType == 3)
-          # $texts.remove();
           for child, i in domnode.childNodes
             if not child.classList?.contains('js-polyfill-pseudo') # '?' because text nodes do not have classList
               domnode.removeChild(child)
@@ -542,8 +532,8 @@ define 'polyfill-path/plugins', [
           ret.push(val.value)
         else if val instanceof less.tree.ArrayTreeNode
           # Append the elements in order
-          for $el in val.values
-            ret.push($el)
+          for el in val.values
+            ret.push(el)
         else if val instanceof less.tree.Call
           # console.log("Not finished evaluating yet: #{val.name}")
           return null
