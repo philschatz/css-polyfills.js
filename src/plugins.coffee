@@ -476,10 +476,10 @@ define 'polyfill-path/plugins', [
           domnode = env.helpers.contextNode
           # Do not replace pseudo elements
           # Remove non-pseudo elements
-          for child, i in domnode.childNodes
+          # `childNodes` is a live list and we are removing so make it non-live
+          for child in _.toArray(domnode.childNodes)
             if not child.classList?.contains('js-polyfill-pseudo') # '?' because text nodes do not have classList
               domnode.removeChild(child)
-              i -= 1
 
           # Append 1-by-1 because they values may be multiple jQuery sets (like `content: pending(bucket1) pending(bucket2)`)
           pseudoAfter = domnode.querySelector('.js-polyfill-pseudo-after')

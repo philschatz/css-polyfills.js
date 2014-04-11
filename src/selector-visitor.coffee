@@ -2,9 +2,6 @@ define 'polyfill-path/selector-visitor', [
   'underscore'
   'less'
   'eventemitter2'
-  # Add `:nth-of-type()` to Sizzle
-  'sizzle'
-  'polyfill-path/jquery-selectors'
 ], (_, less, EventEmitter) ->
 
   class LessVisitor extends EventEmitter

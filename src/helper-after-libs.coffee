@@ -12,8 +12,7 @@
 # plugins: none
 # extras: none
 
-# selector-visitor:
-# - jquery-selectors
+# selector-visitor: none
 
 # fixed-point: none
 
@@ -26,7 +25,6 @@ MODULES =
   sizzle: @Sizzle
   less: @less
   eventemitter2: @EventEmitter2
-  'polyfill-path/jquery-selectors': @Sizzle
   'selector-set': @SelectorSet
 
 

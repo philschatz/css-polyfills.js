@@ -36,6 +36,23 @@ define ['cs!test/simple'], (simple) ->
       '''
       simple(css, html, expected)
 
+    it 'supports :nth-of-type(2):has(span)', () ->
+      # Use `:has` to force the use of Sizzle instead of the browser
+      css = '''
+        h3:nth-of-type(2):has(span) { content: '[Passed]'; }
+      '''
+      html = '''
+        <h3>[OK]</h3>
+        <h3>[Fail]<span>foo</span></h3>
+        <h3>[OK]</h3>
+      '''
+      expected = '''
+        [OK]
+        [Passed]
+        [OK]
+      '''
+      simple(css, html, expected)
+
     it 'supports :not(:nth-of-type(2n)) combined with ::before', () ->
       # This used to get mangled up when given to Sizzle and
       # requires a jQuery plugin to fully work
