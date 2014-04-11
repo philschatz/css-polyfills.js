@@ -1,8 +1,8 @@
 define 'polyfill-path/less-converters', [
   'underscore'
-  'jquery'
+  'sizzle'
   'cs!polyfill-path/selector-visitor'
-], (_, $, AbstractSelectorVisitor) ->
+], (_, Sizzle, AbstractSelectorVisitor) ->
 
   PSEUDO_CLASSES = [
     'before'
@@ -106,8 +106,7 @@ define 'polyfill-path/less-converters', [
               # If not, add it to the DOM
               cls = "js-polyfill-pseudo-#{pseudoName}"
 
-              # TODO: Replace this with Sizzle
-              pseudo = $(context).find(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}")[0]
+              pseudo = Sizzle(" > .#{cls}, > .js-polyfill-pseudo-outside > .#{cls}", context)[0]
               if pseudo
                 context = pseudo
               else

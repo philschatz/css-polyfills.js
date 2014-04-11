@@ -1,8 +1,8 @@
 define 'polyfill-path/plugins', [
   'underscore'
-  'jquery'
+  'sizzle'
   'less'
-], (_, $, less) ->
+], (_, Sizzle, less) ->
 
   # Each plugin provides a set of `functions` and/or `rules`.
   # The arguments to a `function` are the `env` followed by the arguments passed to the function
@@ -345,12 +345,12 @@ define 'polyfill-path/plugins', [
       selector = typeNode.value
       # TODO: add support for pseudoselectors (including complex ones like ::outside::before)
 
-      # TODO: Use Sizzle directly
-      $els = $(env.helpers.contextNode).find(selector)
+      els = Sizzle(selector, env.helpers.contextNode)
       # If nothing is matched then do not resolve (so another rule is matched)
-      return if not $els[0]
+      return if not els[0]
 
-      return $els.text()
+      text = (el.textContent for el in els)
+      return text.join('')
     else
       console.warn("ERROR: content(): expects a Keyword or a Selector String")
 

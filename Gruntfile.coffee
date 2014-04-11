@@ -33,7 +33,7 @@ module.exports = (grunt) ->
             'dist/helper-before.js'
 
             'bower_components/underscore/underscore.js'
-            'bower_components/jquery/jquery.js'
+            'bower_components/sizzle/dist/sizzle.js'
             'node_modules/less/dist/less-1.6.0.js'
             'src/jquery-selectors.js'
             'bower_components/eventemitter2/lib/eventemitter2.js'

@@ -1,8 +1,8 @@
 define 'polyfill-path/extras', [
   'underscore'
-  'jquery'
+  'sizzle'
   'less'
-], (_, $, less) ->
+], (_, Sizzle, less) ->
 
   uniqueIdCount = 0
   uniqueId = () -> "id-added-via-x-ensure-id-#{uniqueIdCount++}"
@@ -29,9 +29,9 @@ define 'polyfill-path/extras', [
           newEl.className = context.className
           newEl.setAttribute('data-js-polyfill-tagname-orig', oldTagName)
 
-          for child of context.childNodes
+          for child in context.childNodes
             newEl.appendChild(child)
-          context.parentNode.replaceChild($newEl[0], context)
+          context.parentNode.replaceChild(newEl, context)
 
           env.helpers.contextNode = newEl
           env.helpers.didSomthingNonIdempotent('x-tag-name')

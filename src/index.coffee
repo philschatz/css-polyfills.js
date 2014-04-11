@@ -1,7 +1,5 @@
 define 'polyfill-path/index', [
   'underscore'
-  # This is ONLY here for css-diff and css-coverage's benefit (see bottom of this file)
-  'jquery'
   'less'
   'eventemitter2'
   'selector-set'
@@ -11,7 +9,7 @@ define 'polyfill-path/index', [
   'cs!polyfill-path/extras'
   'cs!polyfill-path/fixed-point-runner'
   'cs!polyfill-path/selector-visitor' # Squirrel for css-coverage and other projects that customize plugins
-], (_, $, less, EventEmitter, SelectorSet, SelectorTree, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
+], (_, less, EventEmitter, SelectorSet, SelectorTree, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
 
 
   PseudoExpander    = LESS_CONVERTERS.PseudoExpander
@@ -227,9 +225,8 @@ define 'polyfill-path/index', [
       parser.parse(cssStyle, cb)
 
 
-  # Stick jQuery and less onto the CSSPolyfills object so the tree nodes can be customized
+  # Stick less onto the CSSPolyfills object so the tree nodes can be customized
   CSSPolyfills.less = less
-  CSSPolyfills.$ = $
   CSSPolyfills.AbstractSelectorVisitor = AbstractSelectorVisitor
 
   # Set a global for non-AMD projects

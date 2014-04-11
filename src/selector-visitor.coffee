@@ -2,9 +2,8 @@ define 'polyfill-path/selector-visitor', [
   'underscore'
   'less'
   'eventemitter2'
-  # Add `:nth-of-type()` to jQuery
-  # TODO: Add it to Sizzle instead
-  'jquery'
+  # Add `:nth-of-type()` to Sizzle
+  'sizzle'
   'polyfill-path/jquery-selectors'
 ], (_, less, EventEmitter) ->
 
@@ -74,8 +73,7 @@ define 'polyfill-path/selector-visitor', [
       try
         return @rootNode.querySelectorAll(selectorStr)
       catch err
-        # TODO: Replace this with Sizzle
-        return $(@rootNode).find(selectorStr)
+        return Sizzle(selectorStr, @rootNode)
 
     visitRuleset: (node) ->
       return if node.root

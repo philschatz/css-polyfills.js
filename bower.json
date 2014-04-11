@@ -18,7 +18,7 @@
     "tests"
   ],
   "dependencies": {
-    "jquery": "~2.0.3",
+    "sizzle": "~1.10.18",
     "underscore": "~1.5.2",
     "ace": "~1.1.1",
     "requirejs": "~2.1.9",
@@ -29,7 +29,7 @@
     "require-cs": "~0.4.4",
     "chai": "~1.8.1",
     "eventemitter2": "~0.4.13",
-    "selector-set": "~1.0.5"
+    "selector-set": "~1.0.5",
   },
   "resolutions": {
     "coffee-script": "~1.6.3"
