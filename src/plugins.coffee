@@ -43,27 +43,6 @@ define 'polyfill-path/plugins', [
         # Empty the bucket so it can be refilled later
         delete env.state.buckets[bucketNameNode.value] if env.state.buckets
         return domAry or []
-      'x-selector': (env, selectorNode) ->
-        console.warn("ERROR: x-selector(): expects a Quoted") if selectorNode not instanceof less.tree.Quoted
-        return selectorNode.value
-      'x-sort': (env, bucketElementsNode, sortBySelector=null) ->
-        domAry = bucketElementsNode.eval(env).values
-        sorted = _.clone(domAry).sort (a, b) =>
-          if sortBySelector
-            a = a.querySelector(sortBySelector.value)
-            console.error('ERROR: Attempting to sort but cannot find selector') if not a
-            a = a?.textContent.trim()
-            b = b.querySelector(sortBySelector.value)
-            console.error('ERROR: Attempting to sort but cannot find selector') if not b
-            b = b?.textContent.trim()
-          else
-            a = a.textContent.trim()
-            b = b.textContent.trim()
-          return -1 if (a < b)
-          return 1 if (a > b)
-          return 0
-
-        return sorted
 
     rules:
       'move-to': (env, bucketNameNode) ->
@@ -381,30 +360,6 @@ define 'polyfill-path/plugins', [
           return contents
         # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
         return null
-
-      'x-target-is': (env, targetIdNode, selectorNode=null) ->
-        href = targetIdNode.eval(env).value
-        selectorNode = selectorNode.eval(env)
-        console.warn("ERROR: x-target-is() expects a Quoted") if selectorNode not instanceof less.tree.Quoted
-
-        # Mark the target as interesting if it is not already
-        if not env.helpers.markInterestingByHref(href)
-          # It has already been marked
-          targetEnv = env.helpers.interestingByHref(href)
-          context = targetEnv.helpers.contextNode
-          # return the empty string if the selector matches an element
-          # (so the guard can be used in `content:`)
-          # Otherwise, return null (not falsy!!!) (Cannot be computed yet)
-
-          # This is a replacement for `$context.is(selector)`
-          if Sizzle.matchesSelector(context, selectorNode.value)
-            return ''
-          else
-            return null
-
-        # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
-        return null
-
 
 
   class StringSet
