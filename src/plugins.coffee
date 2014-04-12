@@ -94,8 +94,11 @@ define 'polyfill-path/plugins', [
 
         if 'none' == valNode.value
           context = env.helpers.contextNode
+
           context.parentNode.removeChild(context)
           env.helpers.didSomthingNonIdempotent('display:none')
+
+          return 'NODE_REMOVED' # Understood the rule and do not continue processing rules on it
 
         return true # Understood the rule
 
@@ -168,9 +171,11 @@ define 'polyfill-path/plugins', [
         for counterName, counterValue of counters
           env.state.counters[counterName] ?= 0
           env.state.counters[counterName] += counterValue
+
         # For debugging, squirrel the counter state on the element
         # env.helpers.contextNode.setAttribute('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
         return true # Understood the rule
+
       'counter-reset': (env, valNode) ->
         countersAndNumbers = valNode.eval(env)
         counters = @parseCounters(countersAndNumbers, 0)

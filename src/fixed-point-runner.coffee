@@ -176,14 +176,23 @@ define 'polyfill-path/fixed-point-runner', [
 
 
     lookupAutogenClasses: (domnode) ->
-      classes = domnode.className or ''
-      classes = classes.split(' ')
-      foundClasses = []
-      for cls in classes
-        if /^js-polyfill-autoclass-/.test(cls)
-          foundClasses = foundClasses.concat(@set.get(".#{cls}"))
+      # for SVG elements, className is a SVGAnimatedString
+      if domnode.className
+        if 'string' == typeof domnode.className
+          classes = domnode.className
+        else
+          classes = domnode.className.baseVal
 
-      return foundClasses
+        classes = classes.split(' ')
+        foundClasses = []
+        for cls in classes
+          if /^js-polyfill-autoclass-/.test(cls)
+            foundClasses = foundClasses.concat(@set.get(".#{cls}"))
+
+        return foundClasses
+
+      else
+        return []
 
     tick: (interestingNodes) ->
       @emit('tick.start', interestingNodes.length)
@@ -259,6 +268,11 @@ define 'polyfill-path/fixed-point-runner', [
       # If this is false after looping over the rules then remove the interesting class
       somethingNotCompleted = false
 
+
+      # Skip if the node is detached
+      if domnode.compareDocumentPosition(document.body) & Node.DOCUMENT_POSITION_DISCONNECTED
+        return
+
       env.helpers.contextNode = domnode
 
       autogenRules = @pullRulesFromCache(domnode)
@@ -318,6 +332,13 @@ define 'polyfill-path/fixed-point-runner', [
                 # if 0 == autogenRules.length
                 #   domnode.classList.remove('js-polyfill-interesting')
 
+              else if understood == 'NODE_REMOVED'
+                # remove from cache
+                if domnode.jsPolyfillId
+                  delete @lookupClasses[domnode.jsPolyfillId]
+
+                return
+
               break
 
             # Do not give up on this rule yet. Something changed.
@@ -375,8 +396,13 @@ define 'polyfill-path/fixed-point-runner', [
       # @$root.find(".js-polyfill-autoclass").each (i, node) ->
       # *NOTE:* Keep the autogen classes if the original selector was not a valid browser selector
       for node in @rootNode.querySelectorAll('.js-polyfill-autoclass:not(.js-polyfill-autoclass-keep)')
-        classes = node.className
-        if classes
+        # for SVG elements, className is a SVGAnimatedString
+        if node.classList
+          if 'string' == typeof node.className
+            classes = node.className
+          else
+            classes = node.className.baseVal
+
           classes = classes.replace(/\ ?js-polyfill-autoclass.*/, '')
           # If nothing is left then just remove the class attribute
           # so it does not remain a dangling boolean attribute

@@ -84,13 +84,20 @@ define 'polyfill-path/less-converters', [
           # quicker and easier to look up (esp if DOM nodes move)
           className = freshClass(selectorStr)
           for node in @getNodes(selectorStr)
+
             # node.classList can be empty
             node.className ?= ''
-            if !isBrowserSelector
-              node.classList.add('js-polyfill-autoclass-keep')
-            node.classList.add('js-polyfill-autoclass')
-            node.classList.add('js-polyfill-interesting')
-            node.classList.add(className)
+
+            # Skip SVG elements for now
+            # node.className.baseVal
+            if node.classList
+
+              if !isBrowserSelector
+                node.classList.add('js-polyfill-autoclass-keep')
+              node.classList.add('js-polyfill-autoclass')
+              node.classList.add('js-polyfill-interesting')
+              node.classList.add(className)
+
 
           selectorStr = ".#{className}"
           autoClass = new AutogenClass(selectorStr, originalSelector.elements, ruleSet.rules)

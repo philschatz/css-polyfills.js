@@ -255,6 +255,33 @@ define ['cs!./simple'], (simple) ->
         '''
         simple(css, html, expected)
 
+    it 'does not count elements with display: none', () ->
+      css = '''
+        .hidden { display: none; }
+        figure  {
+          counter-increment: figure;
+          content: '[' counter(figure) ']';
+        }
+      '''
+      html = '''
+        <figure></figure>
+        <figure class="hidden"></figure>
+        <figure></figure>
+        <figure></figure>
+        <figure class="hidden"></figure>
+        <figure class="hidden"></figure>
+        <figure></figure>
+      '''
+      expected = '''
+        [1]
+        [2]
+        [3]
+        [4]
+      '''
+      simple(css, html, expected)
+
+
+
 
   describe 'target-* functions', () ->
 
