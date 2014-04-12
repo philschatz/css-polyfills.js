@@ -99,6 +99,26 @@ define ['cs!./simple'], (simple) ->
         '''
         simple(css, html, expected)
 
+      it 'increments none (no counters)', () ->
+        css = '''
+          figure.skip { counter-increment: none; }
+          figure {
+            counter-increment: figure;
+            content: '[' counter(figure) ']';
+          }
+        '''
+        html = '''
+          <figure></figure>
+          <figure class="skip"></figure>
+          <figure></figure>
+        '''
+        expected = '''
+          [1]
+          [1]
+          [2]
+        '''
+        simple(css, html, expected)
+
     describe 'content: counter(...)', () ->
       it 'supports uninitialized counters', () ->
         css = '''

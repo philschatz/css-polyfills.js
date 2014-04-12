@@ -6,4 +6,5 @@ define [
   'cs!test/string-set.spec'
   'cs!test/impossible.spec'
   'cs!test/misc.spec'
+  'cs!test/error.spec'
 ], (simple) ->

@@ -96,6 +96,7 @@ define 'polyfill-path/plugins', [
         attrNameNode = attrNameNode.eval(env)
         console.warn("ERROR: attr(): expects a Keyword") if attrNameNode not instanceof less.tree.Keyword
         context = env.helpers.contextNode
+        console.warn("ERROR: attr(): does not have an attribute named #{attrNameNode.value}") if not context.hasAttribute(attrNameNode.value)
         val = context.getAttribute(attrNameNode.value)
         # Convert to a number if the attribute is a number (useful for counter tests and setting a counter)
         val = parseInt(val) if val and not isNaN(val)
@@ -128,6 +129,7 @@ define 'polyfill-path/plugins', [
         return @numberingStyle(env.state.counters?[counterNameNode.value], counterType?.eval(env).value)
 
       'target-counter': (env, targetIdNode, counterNameNode, counterType=null) ->
+        (console.error("ERROR: target-counter(): expects a 2nd argument"); return) if not counterNameNode
         counterNameNode = counterNameNode.eval(env)
         console.warn("ERROR: target-counter(): expects a Keyword") if counterNameNode not instanceof less.tree.Keyword
         href = targetIdNode.eval(env).value
@@ -320,7 +322,7 @@ define 'polyfill-path/plugins', [
             val = text.join('')
         else
           val = typeNode.toCSS({})
-          console.warn "ERROR: invalid argument to content(). argument=[#{val}]"
+          console.error "ERROR: invalid argument to content(). argument=[#{val}]"
           val = ''
 
       return val
@@ -398,7 +400,7 @@ define 'polyfill-path/plugins', [
                 str.push(val.value)
                 arg.name = 'content'
               else
-                console.warn("ERROR: invalid function used. only content() is acceptable. name=[#{arg.name}")
+                console.warn("ERROR: invalid function used. only content() is acceptable. name=[#{arg.name}]")
             else
               str.push(arg.value)
 
@@ -414,7 +416,7 @@ define 'polyfill-path/plugins', [
           for v in stringsAndVals.value
             setString(v)
         else
-          console.warn('ERROR: invalid arguments given to "string-set:"')
+          console.warn('ERROR: invalid arguments given to string-set')
           return false # Did NOT Understood the rule
         return true # Understood the rule
 
@@ -446,11 +448,8 @@ define 'polyfill-path/plugins', [
               else
                 if val.ELEMENT_NODE
                   # It's a DOM node; great!
-                else if val.jquery
-                  throw new Error('BUG: content rule only supports 1 dom node at a time for now') if val.length != 1
-                  val = val[0]
                 else
-                  throw new Error('BUG: content rule only supports string, number, and jQuery objects')
+                  throw new Error('BUG: content rule only supports string, number, and DOM Node objects')
 
             # Insert before all the `:after` pseudo elements
             if pseudoAfter

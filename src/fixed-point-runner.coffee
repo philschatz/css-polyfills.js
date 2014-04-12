@@ -221,6 +221,8 @@ define 'polyfill-path/fixed-point-runner', [
                 @somethingChanged += 1
                 target.classList.add('js-polyfill-interesting')
                 target.classList.add('js-polyfill-target')
+              else
+                console.warn("ERROR: Invalid target id: ##{id}")
             return !wasAlreadyMarked
           didSomthingNonIdempotent: (msg) =>
             @somethingChanged += 1
