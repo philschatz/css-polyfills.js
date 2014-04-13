@@ -115,15 +115,6 @@ define 'polyfill-path/fixed-point-runner', [
     return 0
 
 
-  RULE_FILTER = (ruleName) -> (r) ->
-    # As of https://github.com/less/less.js/commit/ebdadaedac2ba2be377ae190060f9ca8086253a4
-    # a Rule name is an Array so join them together.
-    # This is why less.js is currently pinned to #4fd970426662600ecb41bced71206aece5a88ee4
-    name = r.name
-    name = name.join('') if name instanceof Array
-    return (ruleName == name) or ('*' == ruleName)
-
-
   # Wrap all `plugin.funcs` so they can be included in the `less.tree.functions` list.
   # Some examples: `target-text()`, `pending()`
   CSS_FUNCTION_WRAPPER = (funcName, func) -> () ->
@@ -349,9 +340,9 @@ define 'polyfill-path/fixed-point-runner', [
 
       # Done looping over all the rules
 
-      for ruleName of understoodRules
-        if not domnode.getAttribute("data-js-polyfill-rule-#{ruleName}")
-          domnode.setAttribute("data-js-polyfill-rule-#{ruleName}", 'pending')
+      # for ruleName of understoodRules
+      #   if not domnode.getAttribute("data-js-polyfill-rule-#{ruleName}")
+      #     domnode.setAttribute("data-js-polyfill-rule-#{ruleName}", 'pending')
 
 
       if domnode.classList.contains('js-polyfill-target')
