@@ -46,7 +46,7 @@ define ['chai', 'cs!test/simple'], (chai, simple) ->
     functionHelper('counter', 'some-counter', 'non-decimal')
     functionHelper('target-counter', 1)
     functionHelper('target-counter', 'attr(href)', 1)
-    functionHelper('target-counter', 'attr(non-existent-attribute)', 'some-counter')
+    # functionHelper('attr', 'non-existent-attribute')
     functionHelper('target-text', 'attr(href)', 'content(invalid-argument)')
     functionHelper('target-text', 'attr(href)', 'content(1)')
     functionHelper('target-text', 'invalid-href', 'content(before)')
@@ -71,3 +71,6 @@ define ['chai', 'cs!test/simple'], (chai, simple) ->
       html = '<p></p>'
       tester(css, html)
 
+
+    define 'Extras functions (x-*)', () ->
+      functionHelper('x-sort', )

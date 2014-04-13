@@ -96,7 +96,7 @@ define 'polyfill-path/plugins', [
         attrNameNode = attrNameNode.eval(env)
         console.warn("ERROR: attr(): expects a Keyword") if attrNameNode not instanceof less.tree.Keyword
         context = env.helpers.contextNode
-        console.warn("ERROR: attr(): does not have an attribute named #{attrNameNode.value}") if not context.hasAttribute(attrNameNode.value)
+        # console.warn("ERROR: attr(): Element does not have attribute named #{attrNameNode.value}") if not context.hasAttribute(attrNameNode.value)
         val = context.getAttribute(attrNameNode.value)
         # Convert to a number if the attribute is a number (useful for counter tests and setting a counter)
         val = parseInt(val) if val and not isNaN(val)
