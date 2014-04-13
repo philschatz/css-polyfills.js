@@ -281,7 +281,7 @@ define 'polyfill-path/plugins', [
         # Clone the node and remove the pseudo elements.
         # Then run .text().
         el = env.helpers.contextNode.cloneNode(true)
-        for child in el.children
+        for child in _.toArray(el.children)
           if child.classList?.contains('js-polyfill-pseudo')
             el.removeChild(child)
         # if el.classList.contains('js-polyfill-evaluated')
