@@ -6,7 +6,6 @@
 /*global less, window, document, XMLHttpRequest, location */
 
 var less = CSSPolyfills.less;
-var $ = CSSPolyfills.$;
 
 var isFileProtocol = /^(file|chrome(-extension)?|resource|qrc|app):/.test(location.protocol);
 
@@ -300,6 +299,7 @@ function loadStyles(newVars) {
         if (style.type.match(typePattern)) {
             var env = new less.tree.parseEnv(less),
                 lessText = style.innerHTML || '';
+                lessText = lessText.replace(/&gt;/g, '>');
             env.filename = document.location.href.replace(/#.*$/, '');
 
             if (newVars || varsPre) {
@@ -323,7 +323,7 @@ function loadStyles(newVars) {
 
                         var cssStr = cssAST.toCSS(less);
                         var p = new CSSPolyfills();
-                        p.run($('html'), cssStr, 'STYLEINPUT', function(err, css) {
+                        p.run(document.documentElement, cssStr, 'STYLEINPUT', function(err, css) {
                             style.type = 'text/css';
                             if (style.styleSheet) {
                                 style.styleSheet.cssText = css;
@@ -672,7 +672,7 @@ less.refresh = function (reload, newVars) {
         }
             var cssStr = root.toCSS(less);
             var p = new CSSPolyfills();
-            p.run($('html'), cssStr, sheet.href, function(err, cssStr) {
+            p.run(document.documentElement, cssStr, sheet.href, function(err, cssStr) {
                 createCSS(cssStr, sheet, env.lastModified);
             });
         // Run createCSS twice; once here so some styling shows up immediately.

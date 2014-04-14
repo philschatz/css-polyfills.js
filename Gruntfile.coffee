@@ -17,6 +17,7 @@ module.exports = (grunt) ->
           'dist/helper-after-libs.js': ['src/helper-after-libs.coffee']
           'dist/css-polyfills-coffee.js': [
             # The order of these is important because we use a much simpler AMD loader than RequireJS
+            'src/selector-tree.coffee'
             'src/fixed-point-runner.coffee'
             'src/selector-visitor.coffee'
             'src/extras.coffee'
@@ -32,7 +33,7 @@ module.exports = (grunt) ->
             'dist/helper-before.js'
 
             'bower_components/underscore/underscore.js'
-            'bower_components/jquery/jquery.js'
+            'bower_components/sizzle/dist/sizzle.js'
             'node_modules/less/dist/less-1.6.0.js'
             'src/jquery-selectors.js'
             'bower_components/eventemitter2/lib/eventemitter2.js'

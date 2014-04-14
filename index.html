@@ -82,10 +82,10 @@ h1 { string-set: chapter-title content(); }
   <li><a href="#section-moving">Moving Content</a></li>
   <li><a href="#section-target-counters">Looking up Cross-referenced text and counters</a></li>
   <li><a href="#section-elements">Making HTML elements in CSS</a></li>
-  <li><a href="#section-extensions">Adding Extensions</a></li>
-  <li><a href="#section-footnotes"><strong>Putting it Together: Footnotes (Clickable and Floating)</strong></a></li>
   <li><a href="#section-customize-link-text">Customizing Link Text</a></li>
-  <li><a href="#section-jquery-selector-extensions">jQuery Selector Extensions (for free!)</a></li>
+  <li><a href="#section-footnotes"><strong>Putting it Together: Footnotes (Clickable and Floating)</strong></a></li>
+  <li><a href="#section-sizzle-selector-extensions">Sizzle Selector Extensions</a></li>
+  <li><a href="#section-extensions">Adding Extensions</a></li>
 </ul>
 
 <hr/>
@@ -98,8 +98,8 @@ h1 { string-set: chapter-title content(); }
       type="text/css"
       href="styles.css" /></pre>
 
-<p>Then use the <code>dist.js</code> built in the main directory, and include it in your page, like so:</p>
-<pre>&lt;script src="dist.js" type="text/javascript">&lt;/script></pre>
+<p>Then use the <code>dcss-polyfills.js</code> built in the <code>/dist/</code> directory, and include it in your page, like so:</p>
+<pre>&lt;script src="dist/css-polyfills.js">&lt;/script></pre>
 
 <p>See <a href="examples/browser.html">examples/browser.html</a> for an example.</p>
 
@@ -118,9 +118,7 @@ h1 { string-set: chapter-title content(); }
 .area-b { content: pending(bucket-b); }
 
 // Also, styling occurs **before** elements are moved so ...
-.before div { background-color: lightgreen; }
-// ... when this CSS is applied **nothing** should be red.
-.area-a .def-a { background-color: red; }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+.before div { background-color: lightgreen; }</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
 
   <div class="html-editor">&lt;div class="before">
   &lt;div class="def-a">This will be in the 1st Area A&lt;/div>
@@ -229,105 +227,9 @@ h3:outside:before { content: '(chapter starts here)'; }
 
 
 
-<h2 id="section-extensions">Adding Extensions</h2>
-
-<p>Continuing with the Move example, it may be nice to sort the elements being moved like in a glossary.</p>
-<p>Adding these extensions is pretty straightforward. Here is the definition of <code class="css">x-sort(bucket)</code>.</p>
-
-<pre>
-'x-sort': (env, pendingElsNode) ->
-  $pendingEls = pendingElsNode.value
-  sorted = _.clone($pendingEls).sort (a, b) ->
-    a = a.text()
-    b = b.text()
-    return -1 if (a &lt; b)
-    return 1
-
-  $sorted = $('EMPTY_SET_OF_NODES')
-  _.each sorted, (el) ->
-    $sorted = $sorted.add(el)
-
-  return $sorted
-</pre>
-
-<p>You can use it in a demo below. Note that the items are sorted alphabetically.</p>
-
-<div class="row try-it-example">
-
-  <div class="col-md-4">
-    <pre class="css-editor"><code class="css">// This element will be moved into the glossary-bucket...
-.def {
-  move-to: glossary-bucket;
-}
-
-// ... and dumped out into this area in the order added.
-.glossary-area {
-  content: x-sort(pending(glossary-bucket));
-}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
-
-  <div class="html-editor">&lt;div class="def">
-  Second law: states...
-&lt;/div>
-&lt;div class="def">
-  Zeroth law: law in...
-&lt;/div>
-&lt;div class="def">
-  First law: law est...
-&lt;/div>
-
-&lt;h1>Glossary&lt;/h1>
-&lt;div class="glossary-area">&lt;/div></div>
 
 
-</div><!-- /row -->
-
-
-
-<h2 id="section-more-extensions">More Extensions</h2>
-
-<p>Sometimes it is useful to sort by something other than the text.</p>
-<p>With the polyfills you can add a second argument to sort that provides a selector to specify what to sort on.</p>
-<p>Try the demo below and notice the elements are sorted by the <code>sort-by</code> span instead of alphabetically.</p>
-
-<div class="row try-it-example">
-
-  <div class="col-md-4">
-    <pre class="css-editor"><code class="css">// This element will be moved into the glossary-bucket...
-.def {
-  move-to: glossary-bucket;
-}
-
-// ... and dumped out into this area in the order added.
-.glossary-area {
-  content: x-sort(pending(glossary-bucket),
-                  x-selector('.sort-by'));
-}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
-
-  <div class="html-editor">&lt;div class="def">
-  Second law: states...&lt;span class="sort-by">2&lt;/span>
-&lt;/div>
-&lt;div class="def">
-  Zeroth law: law in...&lt;span class="sort-by">0&lt;/span>
-&lt;/div>
-&lt;div class="def">
-  First law: law est...&lt;span class="sort-by">1&lt;/span>
-&lt;/div>
-
-&lt;h1>Glossary&lt;/h1>
-&lt;div class="glossary-area">&lt;/div></div>
-
-
-</div><!-- /row -->
-
-
-
-
-
-
-
-
-
-<h3 id="section-strings">Setting Strings</h3>
+<h2 id="section-strings">Setting Strings</h2>
 
 <p>Sometimes it is useful to set a string and then use it later. An example would be having the current chapter on each page of a book.</p>
 <p>Fortunately <a href="http://www.w3.org/TR/css3-gcpm/#named-strings">CSS Generated Content for Paged Media</a> defines the <code>string-set: string-name value;</code> and <code>content: string(string-name);</code> rules.</p>
@@ -359,60 +261,7 @@ h3 { string-set: chapter-title content(); }
 
 
 
-<h2 id="section-footnotes">Putting it Together: Footnotes (Clickable and Floating)</h2>
-
-<p>Footnotes that move to the bottom of a page and leave a little numbered link are described in <a href="http://www.w3.org/TR/css3-gcpm/#footnotes">Generated Content for Paged Media: Footnotes</a></p>
-<p>They can be implemented using the pseudoselector <code>:footnote-call</code> and the extension rules <code>x-tag-name:</code>, <code>x-attr:</code>, and <code>x-ensure-id:</code>.</p>
-
-<p>Here is an example implementation of footnotes.</p>
-
-<div class="row try-it-example">
-
-  <div class="col-md-4">
-    <pre class="css-editor"><code class="css">.footnote {
-  // Ensure the footnote has an `id` (so we can link to it)
-  x-ensure-id: 'id';
-  // Move it to the next `footnote-area` (page end)
-  move-to: footnote-area;
-  counter-increment: footnote;
-  display: block; // Plain CSS, nothing interesting
-}
-// The content that is left behind after the move-to
-.footnote:footnote-call {
-  // Make the stub that is left behind a link...
-  x-tag-name: 'a';
-  // ... whose href points to the footnote.
-  x-attr: href '#' attr(id);
-  content: '[###]';
-  content: '[' target-counter(attr(href), footnote) ']';
-}
-
-//.footnote:footnote-marker,
-.footnote:before {
-  content: counter(footnote) ': ';
-}
-
-.footnotes {
-  content: pending(footnote-area);
-  //counter-reset: footnote;
-}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
-
-  <div class="html-editor">&lt;p>Text with a &lt;span class="footnote">FOOTNOTE!&lt;/span>.&lt;/p>
-&lt;p>More paragraphs with &lt;span class="footnote">footnote text&lt;/span> &lt;span class="footnote">another footnote&lt;/span>.&lt;/p>
-&lt;hr/>
-&lt;h3>Footnotes Area (bottom of the page/chapter)&lt;/h3>
-&lt;div class="footnotes">&lt;/div>
-</div>
-
-
-</div><!-- /row -->
-
-
-
-
-
-
-<h3 id="section-customize-link-text">Customizing Link Text</h3>
+<h2 id="section-customize-link-text">Customizing Link Text</h2>
 
 <p>Sometimes it is useful to change the text of a link based on what it points to. For example, a link to a figure may say "see Figure 4.3" and a link to another chapter might say "See Section 7.2: Trapezoids".</p>
 <p>Changing the text of a link can be accomplished using <code>x-target-is(id, '.title')</code> which works like a switch statement in many programming languages.</p>
@@ -460,9 +309,64 @@ section::before { content: counter(section) ' '; }
 
 
 
-<h2 id="section-jquery-selector-extensions">jQuery Selector Extensions</h2>
 
-<p>jQuery has several useful <a target="_window" href="http://api.jquery.com/category/selectors/jquery-selector-extensions/">extensions to CSS selectors</a> that allow us to target elements better. Now, you can use them directly in CSS files!</p>
+<h2 id="section-footnotes">Putting it Together: Footnotes (Clickable and Floating)</h2>
+
+<p>Footnotes that move to the bottom of a page and leave a little numbered link are described in <a href="http://www.w3.org/TR/css3-gcpm/#footnotes">Generated Content for Paged Media: Footnotes</a></p>
+<p>They can be implemented using the pseudoselector <code>:footnote-call</code> and the extension rules <code>x-tag-name:</code>, <code>x-attr:</code>, and <code>x-ensure-id:</code>.</p>
+
+<p>Here is an example implementation of footnotes.</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">.footnote {
+  // Ensure the footnote has an `id` (so we can link to it)
+  x-ensure-id: 'id';
+  // Move it to the next `footnote-area` (page end)
+  move-to: footnote-area;
+  counter-increment: footnote;
+  display: block; // Plain CSS, nothing interesting
+}
+// The content that is left behind after the move-to
+.footnote:footnote-call {
+  // Make the stub that is left behind a link...
+  x-tag-name: 'a';
+  // ... whose href points to the footnote.
+  x-attr: href '#' attr(id);
+  content: '[###]';
+  content: '[' target-counter(attr(href), footnote) ']';
+}
+
+//.footnote:footnote-marker,
+.footnote:before {
+  content: counter(footnote) ': ';
+}
+
+// Area where the footnotes will be collected
+.footnotes-area {
+  content: pending(footnote-area);
+  //counter-reset: footnote;
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;p>Text with a &lt;span class="footnote">FOOTNOTE!&lt;/span>.&lt;/p>
+&lt;p>More paragraphs with &lt;span class="footnote">footnote text&lt;/span> &lt;span class="footnote">another footnote&lt;/span>.&lt;/p>
+&lt;hr/>
+&lt;h3>Footnotes Area (bottom of the page/chapter)&lt;/h3>
+&lt;div class="footnotes-area">&lt;/div>
+</div>
+
+
+</div><!-- /row -->
+
+
+
+
+
+
+<h2 id="section-sizzle-selector-extensions">Sizzle Selector Extensions</h2>
+
+<p>Sizzle has several useful <a target="_window" href="http://api.jquery.com/category/selectors/jquery-selector-extensions/">extensions to CSS selectors</a> that allow us to target elements better. Now, you can use them directly in CSS files!</p>
 <p>Some examples include: <code>:has()</code> for looking inside an element and <code>:lt()</code> for matching elements less than a specific index.</p>
 
 <p>Try using them with the demo below!</p>
@@ -495,6 +399,61 @@ section::before { content: counter(section) ' '; }
 
 
 
+
+
+<h2 id="section-extensions">Adding Extensions</h2>
+
+<p>Continuing with the Move example, it may be nice to sort the elements being moved like in a glossary.</p>
+<p>Adding these extensions is pretty straightforward. Here is the definition of <code class="css">x-sort(bucket)</code>.</p>
+
+<pre>
+'x-sort': (env, pendingElsNode) ->
+  pendingEls = pendingElsNode.value
+  sorted = pendingEls.sort (a, b) ->
+    a = a.text()
+    b = b.text()
+    return -1 if (a &lt; b)
+    return 1
+
+  return sorted
+</pre>
+
+<p>You can use it in a demo below. Note that the items are sorted alphabetically.</p>
+
+<div class="row try-it-example">
+
+  <div class="col-md-4">
+    <pre class="css-editor"><code class="css">// This element will be moved into the glossary-bucket...
+.def {
+  move-to: glossary-bucket;
+}
+
+// ... and dumped out into this area in the order added.
+.glossary-area {
+  content: x-sort(pending(glossary-bucket));
+}</code></pre><div class="launch-it-wrap"><button class="btn btn-primary launch-it"><i class="fa fa-play"></i> Try It</button></div></div>
+
+  <div class="html-editor">&lt;div class="def">
+  (C)ut hair
+&lt;/div>
+&lt;div class="def">
+  (A)waken self
+&lt;/div>
+&lt;div class="def">
+  (B)rush teeth
+&lt;/div>
+
+&lt;h1>Glossary&lt;/h1>
+&lt;div class="glossary-area">&lt;/div></div>
+
+
+</div><!-- /row -->
+
+
+
+
+
+
 </div><!-- /#examples.container -->
 </div><!-- /#examples -->
 
@@ -517,7 +476,7 @@ section::before { content: counter(section) ' '; }
             <td class="column-edit-css">
               <div class="panel panel-default">
                 <div class="panel-heading">
-                  <h3 class="panel-title">Edit the CSS:</h3>
+                  <h2 class="panel-title">Edit the CSS:</h2>
                 </div>
                 <div class="panel-body">
                   <div class="css-editor"></div>
