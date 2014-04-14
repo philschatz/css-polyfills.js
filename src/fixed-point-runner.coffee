@@ -398,7 +398,7 @@ define 'polyfill-path/fixed-point-runner', [
 
       # @$root.find(".js-polyfill-autoclass").each (i, node) ->
       # *NOTE:* Keep the autogen classes if the original selector was not a valid browser selector
-      for node in @rootNode.querySelectorAll('.js-polyfill-autoclass:not(.js-polyfill-autoclass-keep)')
+      for node in @rootNode.querySelectorAll('.js-polyfill-autoclass:not(.js-polyfill-autoclass-keep), .js-polyfill-pseudo')
         # for SVG elements, className is a SVGAnimatedString
         if node.classList
           if 'string' == typeof node.className
