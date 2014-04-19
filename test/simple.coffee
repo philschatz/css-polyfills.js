@@ -13,13 +13,14 @@ define ['jquery', 'chai', 'cs!polyfill-path/index'], ($, chai, CSSPolyfills) ->
   # **Note:** ALL whitespace is stripped for the comparison
   return (css, html, expected) ->
     # FIXME: remove the need to append to `body` once target-counter does not use `body` as the hardcoded root
-    $content = $('<div></div>').appendTo('body')
+    $content = $('<article></article>').appendTo('body')
     $content.append(html)
 
     p = new CSSPolyfills()
-    p.run $content, css, 'STDINPUT', (err, cssStr) ->
+    p.run $content[0], css, 'STDINPUT', (err, cssStr) ->
       $content.remove()
-      strExpect(expected, $content.text())
+      if expected != null
+        strExpect(expected, $content.text())
 
       # console.log('----- Converted CSS ------')
       # console.log(cssStr)

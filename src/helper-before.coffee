@@ -3,7 +3,6 @@
 @__polyfills_originalGlobals ?=
   define:         @define
   underscore:     @_
-  jquery:         @$
   less:           @less
   eventemitter2:  @EventEmitter2
   SelectorSet:    @SelectorSet

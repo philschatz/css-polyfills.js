@@ -278,3 +278,80 @@ define ['cs!./simple'], (simple) ->
         3: another footnote
       '''
       simple(css, html, expected)
+
+
+    it 'can be used to customize link text', () ->
+      css = '''
+        a[href] {
+          // Use x-target-is as a switch for which link text to use
+          content: x-target-is(attr(href), 'figure') 'See Figure';
+          // Link to a section WITHOUT a title
+          content: x-target-is(attr(href), 'section:not(:has(>.title))')
+                   'See ' target-text(attr(href), content(before));
+          // Link to a section **with** a title
+          content: x-target-is(attr(href), 'section:has(>.title)')
+                   'See ' target-text(attr(href), content(before))
+                   target-text(attr(href), content('> .title'));
+        }
+
+        // Some uninteresting formatting just for the demo
+        section { counter-increment: section; }
+        section::before { content: counter(section) ' '; }
+      '''
+      html = '''
+        <figure id="id-figure">image</figure>
+          <a href="#id-figure">LINK</a>
+        <hr/>
+
+        <section id="id-section">Section without a title</section>
+        <section id="id-section-title">
+          <strong class="title">Kinematics</strong>
+          Section with a title
+        </section>
+        <a href="#id-section">LINK</a>
+        <br/>
+        <a href="#id-section-title">LINK</a>
+      '''
+      expected = '''
+        image
+        See Figure
+        1 Section without a title
+        2 Kinematics
+        Section with a title
+        See 1
+        See 2 Kinematics
+      '''
+      simple(css, html, expected)
+
+
+    it 'supports Sizzle selector extensions', () ->
+      css = '''
+        .example:has(>.title) {
+          content: '[PINK]';
+        }
+
+        .count:lt(3) {
+          content: '[BLUE]';
+        }
+      '''
+      html = '''
+        <div class="example">Does not have title</div>
+        <div class="example"><div class="title">Has title</div></div>
+
+        <hr/>
+
+        <div class="count">First</div>
+        <div class="count">Second</div>
+        <div class="count">Third</div>
+        <div class="count">Fourth</div>
+      '''
+      expected = '''
+        Does not have title
+        [PINK]
+        [BLUE]
+        [BLUE]
+        [BLUE]
+        Fourth
+      '''
+      simple(css, html, expected)
+

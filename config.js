@@ -6,6 +6,7 @@ require.config({
       'coffee-script': './bower_components/coffee-script/extras/coffee-script',
       'underscore':    './bower_components/underscore/underscore',
       'jquery':        './bower_components/jquery/jquery',
+      'sizzle':        './bower_components/sizzle/dist/sizzle',
       'less':          './node_modules/less/dist/less-1.6.0',
       'eventemitter2': './bower_components/eventemitter2/lib/eventemitter2',
       'selector-set':  './bower_components/selector-set/selector-set'

@@ -1,15 +1,15 @@
 define 'polyfill-path/index', [
   'underscore'
-  'jquery'
   'less'
   'eventemitter2'
   'selector-set'
+  'cs!polyfill-path/selector-tree'
   'cs!polyfill-path/less-converters'
   'cs!polyfill-path/plugins'
   'cs!polyfill-path/extras'
   'cs!polyfill-path/fixed-point-runner'
   'cs!polyfill-path/selector-visitor' # Squirrel for css-coverage and other projects that customize plugins
-], (_, $, less, EventEmitter, SelectorSet, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
+], (_, less, EventEmitter, SelectorSet, SelectorTree, LESS_CONVERTERS, PLUGINS, EXTRAS, FixedPointRunner, AbstractSelectorVisitor) ->
 
 
   PseudoExpander    = LESS_CONVERTERS.PseudoExpander
@@ -47,8 +47,10 @@ define 'polyfill-path/index', [
       if not @doNotIncludeDefaultPlugins
         @plugins = @plugins.concat(CSSPolyfills.DEFAULT_PLUGINS)
 
-    runTree: ($root, lessTree, cb=null) ->
+    runTree: (rootNode, lessTree, cb=null) ->
       @emit('start')
+
+      rootNode = rootNode[0] if rootNode.jquery
 
       bindAll = (emitter, eventNames) =>
         _.each eventNames, (name) =>
@@ -131,15 +133,15 @@ define 'polyfill-path/index', [
 
         start = new Date()
         # Use the `addedSelectors` which were monkey patched in using the code above
-        allSelectors = outputRulesets.addedSelectors
+        allSelectors = outputRulesets.addedSelectors or []
 
         for {selector:selectorStr, data:autogenClass} in allSelectors
           {rules, selector} = autogenClass
-          originalSelectorStr = selector.toCSS(env).trim()
+          originalSelectorStr = selector
           if originalSelectorStr == selectorStr
             comment = ''
           else
-            comment = "/* BASED_ON: ... #{originalSelectorStr} */"
+            comment = "/* BASED_ON: #{originalSelectorStr} */"
 
           cssStrs.push("#{selectorStr} { #{comment}")
           for rule in rules
@@ -151,7 +153,7 @@ define 'polyfill-path/index', [
       # Create 2 selector sets; one for all the selectors and one for only the
       # "interesting" selectors that fixed-point cares about.
       allSet = new SelectorSet()
-      interestingSet = new SelectorSet()
+      interestingSet = new SelectorTree()
 
       changeLessTree = (plugins) ->
         env = new less.tree.evalEnv()
@@ -163,7 +165,7 @@ define 'polyfill-path/index', [
         lessTree.toCSS(env)
 
       runFixedPoint = (plugins) ->
-        fixedPointRunner = new FixedPointRunner($root, plugins, interestingSet)
+        fixedPointRunner = new FixedPointRunner(rootNode, plugins, interestingSet)
 
         bindAll fixedPointRunner, [
           'runner.start'
@@ -177,7 +179,7 @@ define 'polyfill-path/index', [
 
       if @pseudoExpanderClass
 
-        pseudoExpander = new (@pseudoExpanderClass)($root, allSet, interestingSet, @plugins)
+        pseudoExpander = new (@pseudoExpanderClass)(rootNode, allSet, interestingSet, @plugins)
         bindAll pseudoExpander, [
           'selector.start'
           'selector.end'
@@ -204,10 +206,10 @@ define 'polyfill-path/index', [
 
       @emit('end')
 
-    run: ($root, cssStyle, filename, cb) ->
+    run: (rootNode, cssStyle, filename, cb) ->
       @parse cssStyle, filename, (err, lessTree) =>
         return cb?(err, lessTree) if err
-        @runTree($root, lessTree, cb)
+        @runTree(rootNode, lessTree, cb)
 
     # Parse a CSS/LESS file with the correct environment variables for coverage
     parse: (cssStyle, filename, cb) ->
@@ -223,9 +225,8 @@ define 'polyfill-path/index', [
       parser.parse(cssStyle, cb)
 
 
-  # Stick jQuery and less onto the CSSPolyfills object so the tree nodes can be customized
+  # Stick less onto the CSSPolyfills object so the tree nodes can be customized
   CSSPolyfills.less = less
-  CSSPolyfills.$ = $
   CSSPolyfills.AbstractSelectorVisitor = AbstractSelectorVisitor
 
   # Set a global for non-AMD projects

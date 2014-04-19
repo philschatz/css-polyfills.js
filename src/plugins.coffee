@@ -1,8 +1,8 @@
 define 'polyfill-path/plugins', [
   'underscore'
-  'jquery'
+  'sizzle'
   'less'
-], (_, $, less) ->
+], (_, Sizzle, less) ->
 
   # Each plugin provides a set of `functions` and/or `rules`.
   # The arguments to a `function` are the `env` followed by the arguments passed to the function
@@ -24,38 +24,25 @@ define 'polyfill-path/plugins', [
         domAry = env.state.buckets?[bucketNameNode.value] or []
 
         # Check that all pseudo elements have been evaluated before this function actually runs
-        for $node in domAry
-          $pseudos = $node.find('.js-polyfill-pseudo')
-          if $pseudos.is('[data-js-polyfill-rule-content="pending"]')
+        for node in domAry
+          pendingPseudo = node.querySelector('.js-polyfill-pseudo[data-js-polyfill-rule-content="pending"]')
+          if pendingPseudo
             return null
 
         # Keep the `:footnote-call` pseudoelement in the original content by inserting it after
-        for $node in domAry
-          $node.find('.js-polyfill-pseudo-footnote-call').insertAfter($node)
+        for node in domAry
+          footnote = node.querySelector('.js-polyfill-pseudo-footnote-call')
+          if footnote
+            # insertAfter
+            if node.nextSibling
+              node.parentNode.insertBefore(footnote, node.nextSibling)
+            else
+              node.parentNode.append(footnote)
 
 
         # Empty the bucket so it can be refilled later
         delete env.state.buckets[bucketNameNode.value] if env.state.buckets
         return domAry or []
-      'x-selector': (env, selectorNode) ->
-        console.warn("ERROR: x-selector(): expects a Quoted") if selectorNode not instanceof less.tree.Quoted
-        return selectorNode.value
-      'x-sort': (env, bucketElementsNode, sortBySelector=null) ->
-        domAry = bucketElementsNode.eval(env).values
-        sorted = _.clone(domAry).sort (a, b) =>
-          if sortBySelector
-            $a = $(a)
-            $b = $(b)
-            a = $a.find(sortBySelector.value).text().trim()
-            b = $b.find(sortBySelector.value).text().trim()
-          else
-            a = a.text().trim()
-            b = b.text().trim()
-          return -1 if (a < b)
-          return 1 if (a > b)
-          return 0
-
-        return sorted
 
     rules:
       'move-to': (env, bucketNameNode) ->
@@ -63,8 +50,8 @@ define 'polyfill-path/plugins', [
         console.warn("ERROR: move-to: expects a Keyword") if bucketNameNode not instanceof less.tree.Keyword
 
         ruleName = 'move-to'
-        $node = env.helpers.$context
-        if $node.is("[data-js-polyfill-rule-content='pending']") or $node.find("[data-js-polyfill-rule-content='pending']").length
+        domnode = env.helpers.contextNode
+        if 'pending' == domnode.getAttribute('data-js-polyfill-rule-content') or domnode.querySelector("[data-js-polyfill-rule-content='pending']")
 
           # Keep waiting for another tick
           return false
@@ -72,7 +59,7 @@ define 'polyfill-path/plugins', [
         bucketName = bucketNameNode.value
         env.state.buckets ?= {}
         env.state.buckets[bucketName] ?= []
-        env.state.buckets[bucketName].push(env.helpers.$context)
+        env.state.buckets[bucketName].push(env.helpers.contextNode)
 
         # DO NOT DETACH because move-to can be called more than once on an element.... env.helpers.$context.detach()
         return 'RULE_COMPLETED' # Understood the rule
@@ -85,8 +72,12 @@ define 'polyfill-path/plugins', [
         return if valNode not instanceof less.tree.Anonymous
 
         if 'none' == valNode.value
-          env.helpers.$context.detach()
+          context = env.helpers.contextNode
+
+          context.parentNode.removeChild(context)
           env.helpers.didSomthingNonIdempotent('display:none')
+
+          return 'NODE_REMOVED' # Understood the rule and do not continue processing rules on it
 
         return true # Understood the rule
 
@@ -95,31 +86,38 @@ define 'polyfill-path/plugins', [
   class TargetCounter
     functions:
       'x-parent': (env, valNode) ->
-        $context = env.helpers.$context
-        env.helpers.$context = $context.parent()
+        context = env.helpers.contextNode
+        env.helpers.contextNode = context.parentNode
         valNode = valNode.eval(env)
-        env.helpers.$context = $context
+        env.helpers.contextNode = context
         return valNode
 
       'attr': (env, attrNameNode) ->
         attrNameNode = attrNameNode.eval(env)
         console.warn("ERROR: attr(): expects a Keyword") if attrNameNode not instanceof less.tree.Keyword
-        $context = env.helpers.$context
-        val = $context.attr(attrNameNode.value)
+        context = env.helpers.contextNode
+        # console.warn("ERROR: attr(): Element does not have attribute named #{attrNameNode.value}") if not context.hasAttribute(attrNameNode.value)
+        val = context.getAttribute(attrNameNode.value)
         # Convert to a number if the attribute is a number (useful for counter tests and setting a counter)
         val = parseInt(val) if val and not isNaN(val)
         if not val
           # If it is a pseudoelement try to move up/down(in the case of :outside)
           # Move up until the current node is not a pseudo-element
-          if $context.is('.js-polyfill-pseudo')
-            if $context.is('.js-polyfill-pseudo-outside')
+          if context.classList.contains('js-polyfill-pseudo')
+            if context.classList.contains('js-polyfill-pseudo-outside')
               # TODO: The :outside tags might be nested so we may need to search for the first non-pseudo child
-              $context = $context.find(':not(.js-polyfill-pseudo)').first()
+              context = context.querySelector(':not(.js-polyfill-pseudo)')
             else
-              $context = $context.parent(':not(.js-polyfill-pseudo)')
+              # get out of all the pseudoelements
+              # It could be the case that this element was hidden; in that case it no longer has parents
+              if context.parentNode
+                context = context.parentNode
+                while context.classList.contains('js-polyfill-pseudo')
+                  context = context.parentNode
+                  break if not context
 
             # Copy/Pasta from above
-            val = $context.attr(attrNameNode.value)
+            val = context.getAttribute(attrNameNode.value)
             # Convert to a number if the attribute is a number (useful for counter tests and setting a counter)
             val = parseInt(val) if val and not isNaN(val)
 
@@ -131,6 +129,7 @@ define 'polyfill-path/plugins', [
         return @numberingStyle(env.state.counters?[counterNameNode.value], counterType?.eval(env).value)
 
       'target-counter': (env, targetIdNode, counterNameNode, counterType=null) ->
+        (console.error("ERROR: target-counter(): expects a 2nd argument"); return) if not counterNameNode
         counterNameNode = counterNameNode.eval(env)
         console.warn("ERROR: target-counter(): expects a Keyword") if counterNameNode not instanceof less.tree.Keyword
         href = targetIdNode.eval(env).value
@@ -153,9 +152,11 @@ define 'polyfill-path/plugins', [
         for counterName, counterValue of counters
           env.state.counters[counterName] ?= 0
           env.state.counters[counterName] += counterValue
+
         # For debugging, squirrel the counter state on the element
-        env.helpers.$context.attr('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
+        # env.helpers.contextNode.setAttribute('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
         return true # Understood the rule
+
       'counter-reset': (env, valNode) ->
         countersAndNumbers = valNode.eval(env)
         counters = @parseCounters(countersAndNumbers, 0)
@@ -163,7 +164,7 @@ define 'polyfill-path/plugins', [
         for counterName, counterValue of counters
           env.state.counters[counterName] = counterValue
         # For debugging, squirrel the counter state on the element
-        env.helpers.$context.attr('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
+        # env.helpers.contextNode.setAttribute('data-debug-polyfill-counters', JSON.stringify(env.state.counters))
         return true # Understood the rule
 
 
@@ -279,12 +280,14 @@ define 'polyfill-path/plugins', [
         # To ignore the pseudo elements
         # Clone the node and remove the pseudo elements.
         # Then run .text().
-        $el = env.helpers.$context.clone()
-        $el.children('.js-polyfill-pseudo').remove()
-        # if $el.is('.js-polyfill-evaluated')
-        #   return $el.text()
+        el = env.helpers.contextNode.cloneNode(true)
+        for child in _.toArray(el.children)
+          if child.classList?.contains('js-polyfill-pseudo')
+            el.removeChild(child)
+        # if el.classList.contains('js-polyfill-evaluated')
+        #   return el.textContent
         # else return null
-        return $el.text()
+        return el.textContent
 
       type = typeNode?.value or defaultType
       switch type
@@ -292,16 +295,34 @@ define 'polyfill-path/plugins', [
           val = getContents()
         when 'first-letter' then val = getContents()?.trim()[0] # trim because 1st letter may be a space
         when 'before'
-          $pseudos = env.helpers.$context.children('.js-polyfill-pseudo-before')
-          if $pseudos.is('.js-polyfill-evaluated')
-            val = $pseudos.text()
+          text = []
+          for child in env.helpers.contextNode.children
+            if child.classList?.contains('js-polyfill-pseudo-before')
+              text.push(child.textContent)
+
+          evaluated = false
+          for child in env.helpers.contextNode.children
+            if child.classList.contains('js-polyfill-evaluated')
+              evaluated = true
+
+          if evaluated
+            val = text.join('')
         when 'after'
-          $pseudos = env.helpers.$context.children('.js-polyfill-pseudo-after')
-          if $pseudos.is('.js-polyfill-evaluated')
-            val = $pseudos.text()
+          text = []
+          for child in env.helpers.contextNode.children
+            if child.classList?.contains('js-polyfill-pseudo-after')
+              text.push(child.textContent)
+
+          evaluated = false
+          for child in env.helpers.contextNode.children
+            if child.classList.contains('js-polyfill-evaluated')
+              evaluated = true
+
+          if evaluated
+            val = text.join('')
         else
           val = typeNode.toCSS({})
-          console.warn "ERROR: invalid argument to content(). argument=[#{val}]"
+          console.error "ERROR: invalid argument to content(). argument=[#{val}]"
           val = ''
 
       return val
@@ -309,12 +330,13 @@ define 'polyfill-path/plugins', [
     else if typeNode instanceof less.tree.Quoted
       selector = typeNode.value
       # TODO: add support for pseudoselectors (including complex ones like ::outside::before)
-      $els = env.helpers.$context.find(selector)
+
+      els = Sizzle(selector, env.helpers.contextNode)
       # If nothing is matched then do not resolve (so another rule is matched)
-      return if not $els[0]
+      return if not els[0]
 
-      return $els.text()
-
+      text = (el.textContent for el in els)
+      return text.join('')
     else
       console.warn("ERROR: content(): expects a Keyword or a Selector String")
 
@@ -340,28 +362,6 @@ define 'polyfill-path/plugins', [
           return contents
         # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
         return null
-
-      'x-target-is': (env, targetIdNode, selectorNode=null) ->
-        href = targetIdNode.eval(env).value
-        selectorNode = selectorNode.eval(env)
-        console.warn("ERROR: x-target-is() expects a Quoted") if selectorNode not instanceof less.tree.Quoted
-
-        # Mark the target as interesting if it is not already
-        if not env.helpers.markInterestingByHref(href)
-          # It has already been marked
-          targetEnv = env.helpers.interestingByHref(href)
-          $el = targetEnv.helpers.$context
-          # return the empty string if the selector matches an element
-          # (so the guard can be used in `content:`)
-          # Otherwise, return null (not falsy!!!) (Cannot be computed yet)
-          if $el.is(selectorNode.value)
-            return ''
-          else
-            return null
-
-        # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
-        return null
-
 
 
   class StringSet
@@ -400,7 +400,7 @@ define 'polyfill-path/plugins', [
                 str.push(val.value)
                 arg.name = 'content'
               else
-                console.warn("ERROR: invalid function used. only content() is acceptable. name=[#{arg.name}")
+                console.warn("ERROR: invalid function used. only content() is acceptable. name=[#{arg.name}]")
             else
               str.push(arg.value)
 
@@ -416,7 +416,7 @@ define 'polyfill-path/plugins', [
           for v in stringsAndVals.value
             setString(v)
         else
-          console.warn('ERROR: invalid arguments given to "string-set:"')
+          console.warn('ERROR: invalid arguments given to string-set')
           return false # Did NOT Understood the rule
         return true # Understood the rule
 
@@ -431,24 +431,33 @@ define 'polyfill-path/plugins', [
         values = @evaluateValNode(valNode)
         if values
 
-          $node = env.helpers.$context
+          domnode = env.helpers.contextNode
           # Do not replace pseudo elements
-          $pseudoEls = $node.children('.js-polyfill-pseudo')
-          $pseudoBefore = $pseudoEls.not(':not(.js-polyfill-pseudo-before)')
-          $pseudoRest = $pseudoEls.not($pseudoBefore)
-
-          $node.empty()
-          # Fill in the before pseudo elements
-          $node.append($pseudoBefore)
+          # Remove non-pseudo elements
+          # `childNodes` is a live list and we are removing so make it non-live
+          for child in _.toArray(domnode.childNodes)
+            if not child.classList?.contains('js-polyfill-pseudo') # '?' because text nodes do not have classList
+              domnode.removeChild(child)
 
           # Append 1-by-1 because they values may be multiple jQuery sets (like `content: pending(bucket1) pending(bucket2)`)
+          pseudoAfter = domnode.querySelector('.js-polyfill-pseudo-after')
           for val in values
-            $node.append(val)
+            switch typeof val
+              when 'string' then val = document.createTextNode(val)
+              when 'number' then val = document.createTextNode(val)
+              else
+                if val.ELEMENT_NODE
+                  # It's a DOM node; great!
+                else
+                  throw new Error('BUG: content rule only supports string, number, and DOM Node objects')
 
-          # Fill in the rest of the pseudo elements
-          $node.append($pseudoRest)
+            # Insert before all the `:after` pseudo elements
+            if pseudoAfter
+              domnode.insertBefore(val, pseudoAfter)
+            else
+              domnode.appendChild(val)
 
-          $node.addClass('js-polyfill-evaluated')
+          domnode.classList.add('js-polyfill-evaluated')
 
           return 'RULE_COMPLETED' # Do not run this again (TODO: especially if it called 'pending()')
 
@@ -478,8 +487,8 @@ define 'polyfill-path/plugins', [
           ret.push(val.value)
         else if val instanceof less.tree.ArrayTreeNode
           # Append the elements in order
-          for $el in val.values
-            ret.push($el)
+          for el in val.values
+            ret.push(el)
         else if val instanceof less.tree.Call
           # console.log("Not finished evaluating yet: #{val.name}")
           return null

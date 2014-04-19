@@ -1,8 +1,8 @@
 define 'polyfill-path/extras', [
   'underscore'
-  'jquery'
+  'sizzle'
   'less'
-], (_, $, less) ->
+], (_, Sizzle, less) ->
 
   uniqueIdCount = 0
   uniqueId = () -> "id-added-via-x-ensure-id-#{uniqueIdCount++}"
@@ -10,12 +10,63 @@ define 'polyfill-path/extras', [
 
   # These are useful for implementing footnotes
   class ElementExtras
+    functions:
+
+      'x-selector': (env, selectorNode) ->
+        console.warn("ERROR: x-selector(): expects a Quoted") if selectorNode not instanceof less.tree.Quoted
+        return selectorNode.value
+      'x-sort': (env, bucketElementsNode, sortBySelector=null) ->
+        domAry = bucketElementsNode.eval(env).values
+        sorted = _.clone(domAry).sort (a, b) =>
+          if sortBySelector
+            a = a.querySelector(sortBySelector.value)
+            console.error('ERROR: Attempting to sort but cannot find selector') if not a
+            a = a?.textContent.trim()
+            b = b.querySelector(sortBySelector.value)
+            console.error('ERROR: Attempting to sort but cannot find selector') if not b
+            b = b?.textContent.trim()
+          else
+            a = a.textContent.trim()
+            b = b.textContent.trim()
+          return -1 if (a < b)
+          return 1 if (a > b)
+          return 0
+
+        return sorted
+
+
+      'x-target-is': (env, targetIdNode, selectorNode=null) ->
+        href = targetIdNode.eval(env).value
+        selectorNode = selectorNode.eval(env)
+        console.warn("ERROR: x-target-is() expects a Quoted") if selectorNode not instanceof less.tree.Quoted
+
+        # Mark the target as interesting if it is not already
+        if not env.helpers.markInterestingByHref(href)
+          # It has already been marked
+          targetEnv = env.helpers.interestingByHref(href)
+          context = targetEnv.helpers.contextNode
+          # return the empty string if the selector matches an element
+          # (so the guard can be used in `content:`)
+          # Otherwise, return null (not falsy!!!) (Cannot be computed yet)
+
+          # This is a replacement for `$context.is(selector)`
+          if Sizzle.matchesSelector(context, selectorNode.value)
+            return ''
+          else
+            return null
+
+        # Otherwise, returns null (not falsy!!!) (Cannot be computed yet)
+        return null
+
+
     rules:
       'x-tag-name': (env, tagNameNode) ->
         tagNameNode = tagNameNode.eval(env)
         console.warn("ERROR: move-to: expects a Quoted") if tagNameNode not instanceof less.tree.Quoted
 
-        oldTagName = env.helpers.$context[0].tagName.toLowerCase()
+        context = env.helpers.contextNode
+
+        oldTagName = context.tagName.toLowerCase()
         tagName = tagNameNode.value.toLowerCase()
 
         if oldTagName != tagName
@@ -23,24 +74,30 @@ define 'polyfill-path/extras', [
           # Change the tagName of an element by replacing the element.
           # This requires moving the classes and data() over too
 
-          $newEl = $("<#{tagName}></#{tagName}>")
-          $newEl.addClass(env.helpers.$context.attr('class'))
-          $newEl.attr('data-js-polyfill-tagname-orig', oldTagName)
-          $newEl.data(env.helpers.$context.data())
+          newEl = document.createElement(tagName)
+          newEl.className = context.className
+          newEl.setAttribute('data-js-polyfill-tagname-orig', oldTagName)
 
-          $newEl.append(env.helpers.$context.contents())
-          env.helpers.$context.replaceWith($newEl)
+          for child in context.childNodes
+            newEl.appendChild(child)
+          context.parentNode.replaceChild(newEl, context)
 
-          env.helpers.$context = $newEl
+          env.helpers.contextNode = newEl
           env.helpers.didSomthingNonIdempotent('x-tag-name')
+
+          return 'RULE_COMPLETED' # Do not run this again
+        return false
 
       'x-ensure-id': (env, attributeNameNode) ->
         attributeNameNode = attributeNameNode.eval(env)
         console.warn("ERROR: x-ensure-id: expects a Quoted") if attributeNameNode not instanceof less.tree.Quoted
 
-        if not env.helpers.$context.attr(attributeNameNode.value)
-          env.helpers.$context.attr(attributeNameNode.value, uniqueId())
+        if not env.helpers.contextNode.getAttribute(attributeNameNode.value)
+          env.helpers.contextNode.setAttribute(attributeNameNode.value, uniqueId())
           env.helpers.didSomthingNonIdempotent('x-ensure-id')
+
+          return 'RULE_COMPLETED' # Do not run this again
+        return false
 
 
       # Copy/pasta from string-set
@@ -73,7 +130,7 @@ define 'polyfill-path/extras', [
             else
               str.push(arg.value)
 
-          env.helpers.$context.attr(attrName, str.join(''))
+          env.helpers.contextNode.setAttribute(attrName, str.join(''))
           # env.helpers.didSomthingNonIdempotent('x-attr')
 
         # More than one string can be set at once

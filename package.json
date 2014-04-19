@@ -1,6 +1,6 @@
 {
   "name": "css-polyfills",
-  "version": "0.0.9",
+  "version": "0.0.12",
   "scripts": {
     "develop": "bower install && grunt",
     "blanket": {
@@ -9,6 +9,9 @@
       ]
     }
   },
+  "files": [
+    "dist/css-polyfills.js"
+  ],
   "dependencies": {
     "less": "~1.6"
   },
