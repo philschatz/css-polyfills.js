@@ -17,7 +17,7 @@ Some of the features are outlined below. The project has support for:
 - all the [jQuery Selector Extensions](http://api.jquery.com/category/selectors/jquery-selector-extensions/) like `:has()`, `:lt()`
 
 
-# How to Use on a Webpage
+# How to use on a webpage
 
 It is easy to have the CSS Polyfills run on CSS files in the browser. Just add the following tags in `<head>`:
 
@@ -32,6 +32,10 @@ It is easy to have the CSS Polyfills run on CSS files in the browser. Just add t
     <script src="dist.js" type="text/javascript"></script>
 
 See [examples/browser.html](examples/browser.html) for an example.
+
+# How to use from the command line
+
+The easiest way to use this repo from the command line is [philschatz/css-bake.js](https://github.com/philschatz/css-bake.js).
 
 # Installing
 
