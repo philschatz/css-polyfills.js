@@ -43,6 +43,7 @@ define 'polyfill-path/index', [
         lessPlugins: []
         pseudoExpanderClass: PseudoExpander
         doNotIncludeDefaultPlugins: false
+        removeAutogenClasses: true
 
       if not @doNotIncludeDefaultPlugins
         @plugins = @plugins.concat(CSSPolyfills.DEFAULT_PLUGINS)
@@ -164,8 +165,8 @@ define 'polyfill-path/index', [
 
         lessTree.toCSS(env)
 
-      runFixedPoint = (plugins) ->
-        fixedPointRunner = new FixedPointRunner(rootNode, plugins, interestingSet)
+      runFixedPoint = (plugins) =>
+        fixedPointRunner = new FixedPointRunner(rootNode, plugins, interestingSet, @removeAutogenClasses)
 
         bindAll fixedPointRunner, [
           'runner.start'

@@ -146,7 +146,7 @@ define 'polyfill-path/fixed-point-runner', [
     # rules: {}
     # set: SelectorSet
 
-    constructor: (@rootNode, @plugins, @set) ->
+    constructor: (@rootNode, @plugins, @set, @removeAutogenClasses) ->
       # Enable wildcards in the EventEmitter
       super {wildcard: true}
 
@@ -410,6 +410,8 @@ define 'polyfill-path/fixed-point-runner', [
           nonPolyfillClasses = []
           for className in classes
             nonPolyfillClasses.push(className) if not /^js-polyfill-/.test(className)
+            unless @removeAutogenClasses
+              nonPolyfillClasses.push(className) if /^js-polyfill-autoclass-/.test(className)
 
           # If nothing is left then just remove the class attribute
           # so it does not remain a dangling boolean attribute
