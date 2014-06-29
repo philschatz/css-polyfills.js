@@ -9,7 +9,7 @@ This project implements many of the CSS selectors and rules defined in [CSS3 Gen
 Some of the features are outlined below. The project has support for:
 
 - moving content using `move-to:`
-- constructing stylable DOM elements using nestable `:before`, `:after`, and `:outside` selectors
+- constructing stylable DOM elements using nestable `::before`, `::after`, and `::outside` selectors
 - looking up target counters and text using `target-counter(...)` and `target-text(...)`
 - setting strings using `string-set:`
 - manipulating attributes on elements using `x-tag-name:`, `x-attr:`, and `x-ensure-id:`
@@ -48,8 +48,8 @@ Just run `npm install` and then `grunt` (from [gruntjs.org](http://gruntjs.org).
 
 ## New Selectors
 
-- `:outside` : Creates a new element **around** the selected one (like `:before`)
-- `:before:after` : Allows chaining of pseudoelements
+- `::outside` : Creates a new element **around** the selected one (similar to `::before`)
+- `::before::after` : Allows chaining of pseudoelements
 - `:footnote-call` : A marker element that remains if an element is moved elsewhere in the page
 - `:has(selector)` : Matches an element if elements inside it match `selector` (from jQuery)
 - `:lt(num)` : Select all elements at an index less than index within the matched set (from jQuery)
@@ -94,23 +94,23 @@ Example:
 
 ## Nestable Pseudo Selectors and Wrapping Elements
 
-Browsers support simple `:before` and `:after` selectors to add a single elemnt to the DOM.
+Browsers support simple `::before` and `::after` selectors to add a single element to the DOM.
 Nestable selectors allow creating elements of arbitrary complexity.
 
-Additionally, the `:outside` selector allows wrapping an element with another for styling.
+Additionally, the `::outside` selector allows wrapping an element with another for styling.
 
-Nested selectors and `:outside` are defined in [CSS3 Generated and Replaced Content Module](http://www.w3.org/TR/css3-content/).
+Nested selectors and `::outside` are defined in [CSS3 Generated and Replaced Content Module](http://www.w3.org/TR/css3-content/).
 
 Example:
 
-    h3:before:before  { content: 'Ch '; }
-    h3:before         { content: counter(chap); }
-    h3:before:after   { content: ': '; }
-    h3:outside:before { content: '[chapter starts here]'; }
+    h3::before::before  { content: 'Ch '; }
+    h3::before          { content: counter(chap); }
+    h3::before::after   { content: ': '; }
+    h3::outside::before { content: '[chapter starts here]'; }
 
 ## Looking up Target Counters and Text
 
-Browsers support simple counters in conjunction with `:before` and `:after` for numbering tables, figures, etc.
+Browsers support simple counters in conjunction with `::before` and `::after` for numbering tables, figures, etc.
 
 Labeling links that use those counters is trickier. For example a link that says "See Table 4.2: Sample Dataset" is not possible to describe.
 
@@ -120,7 +120,7 @@ Example:
 
     // Just set a counter so we can look it up later
     h3 { counter-increment: chap; }
-    h3:before { content: 'Ch ' counter(chap) ': '; }
+    h3::before { content: 'Ch ' counter(chap) ': '; }
 
     .xref { content: 'See ' target-text(attr(href), content()); }
 
@@ -161,14 +161,14 @@ move to the bottom of a page and leave a clickable link in their place (as defin
       content: '[' target-counter(attr(href), footnote) ']';
     }
     // Place a number next to the actual footnote
-    .footnote:before { content: counter(footnote) ': '; }
+    .footnote::before { content: counter(footnote) ': '; }
 
     // Define a location where the footnotes will be collected
     .footnotes { content: pending(footnote-area); }
 
 ## Custom Extensions
 
-Additinoally, it may be useful to define custom functions that manipulate the DOM.
+Additionally, it may be useful to define custom functions that manipulate the DOM.
 For example, a sorted glossary at the end of a page can be described in CSS using `move-to: glossary;` and a custom function `x-sort` used in `content: x-sort(pending(glossary));`.
 
 # Development
