@@ -3,6 +3,7 @@
   "version": "0.0.13",
   "scripts": {
     "develop": "bower install && grunt",
+    "test": "grunt test",
     "blanket": {
       "pattern": [
         "css-polyfills.js"
