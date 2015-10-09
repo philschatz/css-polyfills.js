@@ -10,6 +10,7 @@ define 'polyfill-path/less-converters', [
     'outside'
     'footnote-call'
     'footnote-marker'
+    'running'
   ]
 
   # Convert CSS selectors to a valid CSS class name
@@ -141,6 +142,7 @@ define 'polyfill-path/less-converters', [
               when ':after'           then simpleExpand('append',  'after')
               when ':footnote-marker' then simpleExpand('prepend', 'footnote-marker')
               when ':footnote-call'   then simpleExpand('append',  'footnote-call')
+              when ':running'         then simpleExpand('append',  'footnote-call')
 
               when ':outside'
                 op          = 'wrap'
