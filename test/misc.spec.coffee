@@ -301,6 +301,38 @@ define ['cs!test/simple'], (simple) ->
       simple(css, html, expected)
 
 
+    it 'removes an element only when display:none is the last rule', () ->
+      css = '''
+        div { display: none; }
+        div { display: block; }
+        p { display: block; }
+        p { display: none; }
+      '''
+      html = '''
+        <div>Passed</div>
+        <p>Failed</p>
+      '''
+      expected = '''
+        Passed
+      '''
+      simple(css, html, expected)
+
+
+    it 'removes an element only when display:none is the last rule (with specificity)', () ->
+      css = '''
+        div.really-hide-me { display: none; }
+        div { display: block; }
+      '''
+      html = '''
+        <div class='really-hide-me'>Failed</div>
+        <p>Passed</p>
+      '''
+      expected = '''
+        Passed
+      '''
+      simple(css, html, expected)
+
+
     it 'supports simple content followed by more simple content', () ->
       css = '''
         p {
