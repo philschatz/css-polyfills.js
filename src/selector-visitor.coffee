@@ -33,6 +33,7 @@ define 'polyfill-path/selector-visitor', [
     'outside'
     'footnote-call'
     'footnote-marker'
+    'deferred' # For cnx-easybake
   ]
 
 

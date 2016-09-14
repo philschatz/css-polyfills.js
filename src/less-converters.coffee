@@ -164,6 +164,8 @@ define 'polyfill-path/less-converters', [
                   # Update the context to be current pseudo element
                   context = outside
 
+              when ':deferred'
+                # no-op
               else
                 console.error("ERROR: Attempted to expand unsupported pseudo element #{pseudoName}")
 
