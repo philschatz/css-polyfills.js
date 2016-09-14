@@ -11,6 +11,7 @@ define 'polyfill-path/less-converters', [
     'footnote-call'
     'footnote-marker'
     'running'
+    'deferred' # From cnx-easybake
   ]
 
   # Convert CSS selectors to a valid CSS class name

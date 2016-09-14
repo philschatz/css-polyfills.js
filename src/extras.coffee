@@ -7,6 +7,12 @@ define 'polyfill-path/extras', [
   uniqueIdCount = 0
   uniqueId = () -> "id-added-via-x-ensure-id-#{uniqueIdCount++}"
 
+  # Add default do-nothing for selectors used in cnx-easybake
+  for pseudo in ['deferred', 'pass', 'match']
+    Sizzle.selectors.match[pseudo] ?= RegExp(":?#{pseudo}")
+    Sizzle.selectors.find[pseudo] ?= (match, context, isXML) -> context
+    Sizzle.selectors.pseudos[pseudo] ?= (elem) -> elem
+
 
   # These are useful for implementing footnotes
   class ElementExtras
