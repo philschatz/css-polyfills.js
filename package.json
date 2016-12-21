@@ -34,5 +34,6 @@
     "css",
     "polyfill"
   ],
+  "license": "UNLICENSED",
   "author": "Philip Schatz"
 }
